@@ -1,0 +1,1307 @@
+# Implementation Guide
+
+## 1. Purpose of This Document
+- This document is the build-order manual for the campus delivery platform.
+- It translates the PRD, architecture notes, and front-end specification into a step-by-step implementation plan.
+- It is intentionally detailed so that every small implementation decision has an explicit home.
+- It is written to support development, code review, testing, and handoff.
+- It should be used as the shared reference when deciding what to build next.
+- It should also be used to verify that no required product rule is forgotten during implementation.
+- The document is organized by foundation, domain modules, user flows, and verification.
+- The document assumes the product has three role groups: Student, Vendor, and Admin.
+- The document assumes the two verticals are Grocery and Restaurants/Cafes.
+- The document assumes pricing must always expose MRP and savings clearly.
+- The document assumes checkout must use wallet-first payment behavior.
+- The document assumes cluster discounts depend on zone and time window behavior.
+- The document assumes the student experience is mobile-first.
+- The document assumes the vendor experience must remain fast and operationally simple.
+- The document assumes the backend is the source of truth for all business rules.
+- The document assumes client state is temporary and should not be trusted for pricing.
+- The document assumes checkout and wallet flows require atomic handling.
+- The document assumes time-sensitive discount logic must be deterministic and auditable.
+- The document assumes offline or cache failure must not corrupt pricing or orders.
+- The document assumes any future changes must preserve role isolation.
+- The document assumes any future change to discount logic must preserve traceability.
+- The document assumes any future change to checkout must preserve idempotency.
+- The document assumes implementation should remain simple enough for university project maintenance.
+- The document assumes code should remain readable, modular, and easy to explain in a viva.
+- The document assumes the project is not trying to over-engineer infrastructure.
+- The document assumes the first version should favor correctness over premature abstraction.
+- The document assumes the repository is the canonical home of all product decisions.
+- The document assumes this file may be expanded as the build evolves.
+
+## 2. Source Documents Used To Shape This Guide
+- README.md identifies the repository as the project root and confirms the workspace focus.
+- architecture.md defines the backend and infrastructure assumptions.
+- front-end-spec.md defines the visual language and page structure.
+- prd.md defines the business goals, user roles, and MVP scope.
+- This guide aligns all four references into a single execution sequence.
+- Where the source documents overlap, the stricter rule should win.
+- Where the source documents differ, the implementation should preserve the product vision first.
+- Where the source documents are silent, the implementation should prefer the simplest maintainable solution.
+- Where the source documents imply security or pricing behavior, that behavior should be enforced server-side.
+- Where the source documents imply user-facing copy, the implementation should preserve clarity and transparency.
+- Where the source documents imply mobile use, the implementation should prioritize mobile breakpoints and tap targets.
+- Where the source documents imply auditability, the implementation should keep immutable records.
+- Where the source documents imply role-specific behavior, the implementation should keep role-specific routes and access checks.
+- Where the source documents imply time windows, the implementation should treat time consistently in one timezone strategy.
+- Where the source documents imply wallet behavior, the implementation should treat wallet balance as an authoritative financial state.
+- Where the source documents imply cluster discounts, the implementation should treat zone counts as transient eligibility signals, not permanent truth.
+- Where the source documents imply display of MRP, the implementation should never hide it behind a hover or secondary action.
+- Where the source documents imply exam mode, the implementation should treat the mode as a UI and merchandising state.
+- Where the source documents imply vendor flash discounts, the implementation should support quick toggles with clear status.
+- Where the source documents imply admin behavior, the implementation should keep admin actions separate from student and vendor flows.
+- Where the source documents imply public browsing restrictions, the implementation should require auth before protected access.
+- Where the source documents imply logs and metrics, the implementation should plan observability from day one.
+- Where the source documents imply checkout trust, the implementation should show price math plainly.
+- Where the source documents imply price deltas, the implementation should show current price, MRP, savings, and applied discounts distinctly.
+
+## 3. Product Summary In Build Terms
+- Build a student-facing ordering app for the UPES campus context.
+- Build a vendor-facing management surface for catalog and order handling.
+- Build an internal admin layer for control and moderation.
+- Expose groceries and restaurants/cafes as two separate product verticals.
+- Require authentication before protected usage.
+- Present a role-aware experience after login.
+- Make the wallet the default payment path.
+- Support wallet recharge through a controlled payment flow.
+- Support immutable wallet transaction tracking.
+- Support catalog browsing with MRP and current price visible together.
+- Support quick add-to-cart interaction for fast decisions.
+- Support a single-screen checkout experience.
+- Support delivery zone confirmation in checkout.
+- Support cluster discounts triggered by zone activity in a ten-minute window.
+- Support vendor flash discounts for inventory rotation.
+- Support order tracking from placement to completion.
+- Support clear low-stock and unavailable stock handling.
+- Support high-focus exam mode after 10:00 PM.
+- Support a distinct visual language for grocery and restaurant contexts.
+- Support responsive layouts from mobile to desktop.
+- Support operational logs for pricing, wallet, order, and discount actions.
+- Support deterministic pricing computation on the server.
+- Support simple, explainable data models.
+- Support recovery from Redis or cache unavailability without breaking checkout.
+- Support transaction safety for wallet debit and order creation.
+- Support immutable records so old prices and old orders remain explainable.
+- Support a build that can be demonstrated easily in class.
+
+## 4. Working Principles
+- Principle 1: Build the domain model before polishing the UI.
+- Principle 2: Keep pricing logic server-side only.
+- Principle 3: Keep the client as a presentation and interaction layer.
+- Principle 4: Keep role authorization explicit at every entry point.
+- Principle 5: Keep checkout atomic.
+- Principle 6: Keep wallet operations ledger-first.
+- Principle 7: Keep catalog snapshots on order items.
+- Principle 8: Keep cluster eligibility transient and time-bounded.
+- Principle 9: Keep UI copy short, direct, and factual.
+- Principle 10: Keep status transitions finite and documented.
+- Principle 11: Keep state changes visible to the user immediately after server confirmation.
+- Principle 12: Keep fallback behavior safe when Redis or auxiliary services fail.
+- Principle 13: Keep the number of moving parts low unless a requirement demands otherwise.
+- Principle 14: Keep styling consistent through shared tokens and reusable primitives.
+- Principle 15: Keep accessibility visible, not optional.
+- Principle 16: Keep testing aligned to product behavior, not only implementation details.
+- Principle 17: Keep implementation tasks small enough to review independently.
+- Principle 18: Keep each module self-contained where practical.
+- Principle 19: Keep API contracts stable once frontend work starts.
+- Principle 20: Keep documentation current as the implementation changes.
+
+## 5. Repository-Level Build Strategy
+- Start by defining the backend domain model and shared request/response shapes.
+- Then define the frontend route structure and shared UI primitives.
+- Then connect auth and session flow between the two layers.
+- Then implement catalog browsing and product filtering.
+- Then implement cart and checkout state.
+- Then implement wallet recharge and debit handling.
+- Then implement order creation and order history.
+- Then implement vendor management screens.
+- Then implement cluster and flash discount logic.
+- Then implement exam mode presentation logic.
+- Then add observability, validations, and integration tests.
+- Then verify the project end to end from login to checkout to order tracking.
+- Then verify vendor flows from catalog edit to order visibility.
+- Then verify admin restrictions.
+- Then verify low-stock, unavailable, and wallet-insufficient paths.
+- Then verify discount combinations and pricing display consistency.
+- Then verify responsive behavior on representative mobile widths.
+- Then verify night mode transition after 10:00 PM.
+- Then verify recovery behavior when Redis is unavailable.
+- Then verify that each persisted record can be explained later.
+- Then verify that every important state transition is logged.
+- Then verify that the product can be demoed without manual database intervention.
+
+## 6. Recommended Delivery Sequence
+- Phase 1: Create the project skeleton and shared conventions.
+- Phase 2: Define database entities and migration strategy.
+- Phase 3: Define API contracts and DTOs.
+- Phase 4: Implement authentication and role gating.
+- Phase 5: Implement catalog browsing and product retrieval.
+- Phase 6: Implement cart behavior and local checkout state.
+- Phase 7: Implement wallet ledger, recharge, and debit.
+- Phase 8: Implement order creation and order lifecycle.
+- Phase 9: Implement pricing rules and cluster window logic.
+- Phase 10: Implement vendor management flows.
+- Phase 11: Implement admin control screens and restrictions.
+- Phase 12: Implement UI polish, responsiveness, and exam mode.
+- Phase 13: Implement logging, monitoring, and audit fields.
+- Phase 14: Implement test coverage and demo scripts.
+- Phase 15: Implement deployment packaging and release checks.
+- Phase 16: Freeze the contract and prepare viva notes.
+
+## 7. Shared Domain Vocabulary
+- User: any authenticated account in the system.
+- Student: a user allowed to browse, add to cart, recharge wallet, and place orders.
+- Vendor: a user allowed to manage products and view orders.
+- Admin: a user allowed to moderate and configure policy.
+- Vertical: the top-level shopping context, Grocery or Restaurants/Cafes.
+- Product: a catalog item sold by a vendor.
+- Cart: the transient selection state before checkout.
+- Order: the persisted record of a purchase.
+- Order Item: the per-product line item within an order.
+- Wallet: the stored balance used for student payment.
+- Wallet Transaction: the immutable ledger entry that changes wallet balance.
+- Zone: the delivery grouping that maps to a hostel, block, or similar cluster.
+- Cluster Window: a ten-minute bucket used to determine discount eligibility.
+- Cluster Discount: the ten percent discount triggered by zone volume.
+- Flash Discount: a vendor-defined temporary discount on an item.
+- MRP: the maximum retail price or list price shown for comparison.
+- Current Price: the active selling price after business rules.
+- Savings: the visible difference between a higher reference price and current payable price.
+- Exam Mode: the late-night visual and merchandising state.
+- Stock Status: the availability state of a product.
+- Fulfillment Metadata: the vendor or delivery metadata used for order handling.
+- Audit Trail: the sequence of records that explain a financial or pricing action.
+- Idempotency: the property that prevents duplicate execution of a payment or order request.
+- Snapshot: the preserved historical version of product data saved into an order.
+- Role Gate: the authorization layer that limits a route or action.
+- Realtime Window State: the transient cache state used to detect cluster behavior.
+- Source of Truth: the authoritative backend record for business decisions.
+
+## 8. Non-Negotiable Product Rules
+- Auth is mandatory before protected interaction.
+- Role selection must occur before role-specific access is granted.
+- Student and vendor privileges must not leak into each other.
+- MRP must remain visible next to current price wherever pricing is shown.
+- Current price must always be visually more prominent than MRP.
+- Checkout must show a final payable amount before confirmation.
+- Wallet balance must be checked before order finalization.
+- Orders must not be created if required debit logic fails.
+- Wallet debit must not occur twice for the same checkout attempt.
+- Cluster discounts must apply only when the defined window threshold is met.
+- Cluster discounts must be tied to zone and time window, not to arbitrary user activity.
+- Flash discounts must be controlled by vendors and visible in the UI.
+- The app must show stock state clearly.
+- The app must treat unavailable products as non-orderable.
+- The app must keep historical order pricing stable after catalog changes.
+- The app must preserve the recorded discount breakdown for each order.
+- The app must remain readable on small mobile screens.
+- The app must preserve contrast in normal and exam mode.
+- The app must remain usable if Redis is unavailable.
+- The app must keep analytics and logs for debugging.
+- The app must be explainable to a reviewer without requiring hidden context.
+
+## 9. Phase 1, Project Foundation
+- Create the base folder structure before coding features.
+- Decide the frontend and backend separation explicitly.
+- Decide where shared contract files will live.
+- Decide whether the repository contains one app or a monorepo style split.
+- Decide naming conventions for pages, components, services, entities, and DTOs.
+- Decide package naming that matches the domain vocabulary.
+- Decide a single timezone strategy for window logic.
+- Decide how environment variables will be grouped.
+- Decide how local development will start the backend and frontend.
+- Decide the canonical ports for each service.
+- Decide whether API docs will be generated or manually maintained.
+- Decide whether DTO validation will be class-based or schema-based.
+- Decide how the frontend will represent roles and verticals in route groups.
+- Decide how the backend will keep security configuration separated from business services.
+- Decide how the database schema will evolve over time.
+- Decide the naming for migration files.
+- Decide the naming for test files.
+- Decide whether examples for Viva will be stored in docs or left in code comments.
+- Decide how seed data will be loaded.
+- Decide how sample student, vendor, and admin accounts will be created.
+- Decide whether the demo environment needs one script or several scripts.
+- Decide whether the build will rely on a single README or several docs.
+- Decide whether deployment targets are local only or also cloud-ready.
+- Decide whether error responses will share one common structure.
+- Decide whether all timestamps will be stored in UTC and displayed locally.
+
+## 10. Phase 1, Foundation Tasks
+- Create the frontend application shell with route groups for role-aware paths.
+- Create the backend application shell with package groups for auth, users, catalog, pricing, orders, and wallet.
+- Create the database migration baseline.
+- Create a shared API response envelope.
+- Create a shared error model.
+- Create a shared enum for roles.
+- Create a shared enum for verticals.
+- Create a shared enum for stock states.
+- Create a shared enum for order states.
+- Create a shared enum for wallet transaction types.
+- Create a shared enum for payment sources.
+- Create a shared enum for discount types.
+- Create a shared enum for product categories.
+- Create a shared enum for vendor visibility states.
+- Create a shared enum for delivery zone states.
+- Create a shared enum for exam mode state.
+- Create a shared enum for authentication states.
+- Create a shared enum for order source states.
+- Create a shared enum for price reference states.
+- Create a shared enum for action outcomes.
+- Create a base entity definition with audit fields.
+- Create a shared timestamp strategy for created and updated times.
+- Create a migration for the user table.
+- Create a migration for the wallet table.
+- Create a migration for the wallet transaction table.
+- Create a migration for the vendor profile table.
+- Create a migration for the product table.
+- Create a migration for the order table.
+- Create a migration for the order item table.
+- Create a migration for the delivery zone table.
+- Create a migration for any lookup tables needed by the app.
+- Create seed records for initial zones.
+- Create seed records for initial vertical tags.
+- Create seed records for a few sample products.
+- Create seed records for a few sample vendor profiles.
+- Create seed records for a few sample users.
+- Create a minimal health endpoint.
+- Create a minimal frontend landing page for unauthenticated users.
+- Create a minimal authenticated dashboard placeholder.
+- Create a global error boundary on the frontend.
+- Create a backend exception handler.
+- Create a consistent loading state pattern on the frontend.
+- Create a reusable empty state pattern on the frontend.
+- Create a reusable confirmation dialog pattern on the frontend.
+- Create a reusable money display component on the frontend.
+- Create a reusable price row component on the frontend.
+- Create a reusable status badge component on the frontend.
+- Create a reusable action button component on the frontend.
+- Create a reusable card component on the frontend.
+- Create a reusable page header component on the frontend.
+- Create a reusable section header component on the frontend.
+- Create a reusable form field component on the frontend.
+- Create a reusable form error component on the frontend.
+- Create a shared API client layer on the frontend.
+- Create a shared backend response mapper on the frontend.
+- Create a shared authentication storage strategy.
+- Create a shared feature flag strategy if needed.
+- Create a local development script or instructions.
+- Verify the foundation starts cleanly before feature work begins.
+- Verify the repo can run without compile errors at the skeleton stage.
+- Verify the skeleton includes enough structure for later feature addition.
+
+## 11. Phase 2, Backend Architecture Setup
+- Establish the backend package structure first.
+- Separate controller, service, repository, entity, dto, and config layers.
+- Keep API controllers thin and service logic explicit.
+- Keep business logic out of controllers.
+- Keep persistence logic out of services where repository abstraction is enough.
+- Keep security rules in a dedicated configuration area.
+- Keep pricing rules in a dedicated pricing service.
+- Keep order transaction logic in a dedicated order service.
+- Keep wallet accounting in a dedicated wallet service.
+- Keep catalog reads in a dedicated catalog service.
+- Keep vendor editing actions in a dedicated vendor management service.
+- Keep authentication concerns separate from business workflows.
+- Keep audit concerns visible in the entity layer.
+- Keep DTOs separate from entities.
+- Keep request validation close to the request boundary.
+- Keep response shaping close to the controller boundary.
+- Keep enum values stable because they will be serialized across the stack.
+- Keep entity relationships simple enough to query efficiently.
+- Keep naming consistent between backend and frontend when possible.
+- Keep REST endpoints intuitive and resource-oriented.
+- Keep error messages helpful but not verbose.
+- Keep internal exceptions out of public responses.
+- Keep database writes wrapped in transactions where required.
+- Keep read queries optimized for the screens that consume them.
+- Keep any cross-service integration minimal for the first version.
+- Keep integration points testable by unit tests.
+- Keep configuration values externalized.
+- Keep environment-specific settings documented.
+- Keep the backend bootstrappable with sample local settings.
+- Keep the backend ready for API documentation generation.
+- Keep the backend ready for future modularization if the project grows.
+- Verify each module compiles independently.
+- Verify service interfaces are understandable by inspection.
+- Verify that startup logs show the selected profile and port.
+- Verify health checks report expected readiness.
+- Verify backend package names match the intended domain boundaries.
+- Verify the backend can be discussed in a viva without hand-waving.
+
+## 12. Backend Module 1, Authentication
+- Define the login boundary explicitly.
+- Define which routes are public and which routes are protected.
+- Define how a user identifies as Student or Vendor during login.
+- Define how Admin access is kept separate from normal login UX.
+- Define whether the initial version uses sessions, JWT, or another simple strategy.
+- Define the token or session storage rules on the client.
+- Define how password verification will be handled securely.
+- Define how account status will be checked before allowing access.
+- Define how role mismatch will be handled.
+- Define how authentication failures will be reported.
+- Define how logout will clear client state.
+- Define how route guards will redirect unauthenticated users.
+- Define how route guards will redirect role-ineligible users.
+- Define how auth state will be represented in the frontend store.
+- Define how auth state will be refreshed after page load.
+- Define how auth identity will be reused across requests.
+- Define how invalid sessions will be rejected.
+- Define how expired sessions will be detected.
+- Define how login error messages will avoid exposing sensitive detail.
+- Define how a student login differs from a vendor login in the UI.
+- Define how hidden admin access is handled if needed for demo.
+- Define whether registration exists in the first version or not.
+- Define whether login requires phone, email, username, or a campus identifier.
+- Define whether a mock authentication path is allowed for demo purposes.
+- Define whether a password reset flow is in scope.
+- Define whether session refresh tokens are in scope.
+- Define whether account lockout is in scope.
+- Define whether failed attempts are rate-limited.
+- Define how auth errors will be logged.
+- Define how auth events will be traced.
+- Implement the login controller.
+- Implement the login service.
+- Implement the credential verification logic.
+- Implement the role selection logic.
+- Implement the auth response DTO.
+- Implement the auth request DTO.
+- Implement protected route middleware or filter.
+- Implement a frontend auth context or store.
+- Implement a frontend login form.
+- Implement a frontend post-login redirect.
+- Implement logout behavior.
+- Implement auth-aware navigation.
+- Implement auth-aware page protection.
+- Implement auth-aware header state.
+- Implement auth-aware empty states.
+- Implement auth tests for success, failure, and role mismatch.
+- Verify that protected pages cannot be opened directly without auth.
+- Verify that a student cannot access vendor pages.
+- Verify that a vendor cannot access student-only pages.
+- Verify that the auth payload returns exactly the fields the frontend needs.
+- Verify that auth errors are readable and non-technical.
+- Verify that logout clears all sensitive state.
+- Verify that refresh behavior does not duplicate the login state.
+- Verify that the auth system can be explained as a simple gate.
+
+## 13. Backend Module 2, User Profiles
+- Define the common user record.
+- Define the student extension fields.
+- Define the vendor extension fields.
+- Define any admin flags needed for internal control.
+- Define whether contact information is phone-first or email-first.
+- Define whether a user name is mandatory or optional.
+- Define whether profile pictures are in scope.
+- Define whether zone preferences are stored on the student profile.
+- Define whether vendor shop names are stored separately from the login name.
+- Define whether vendor locations are stored separately from zone definitions.
+- Define whether active or suspended status is represented on the user entity.
+- Define how soft deletion is handled if needed.
+- Define how account ownership links to wallet ownership.
+- Define how account ownership links to vendor product ownership.
+- Define how profile read endpoints shape the data.
+- Define how profile update endpoints validate changes.
+- Define how admin changes are authorized.
+- Define how inactive users are blocked from sensitive operations.
+- Define how profile changes are audited.
+- Define how the frontend displays user identity in the header.
+- Define how the frontend surfaces vendor identity in the dashboard.
+- Define how role labels are translated into readable UI labels.
+- Define whether the user profile screen is in scope for MVP.
+- Define whether profile editing is in scope for MVP.
+- Define how user data is seeded for demo.
+- Define how user data is paginated for admin review.
+- Define how profile queries avoid leaking sensitive fields.
+- Define how profile updates are validated against role-specific rules.
+- Define how phone number formatting is handled.
+- Define how email formatting is handled.
+- Implement user entity fields.
+- Implement profile DTOs.
+- Implement profile service methods.
+- Implement profile repository methods.
+- Implement role-aware profile loading.
+- Implement vendor profile loading.
+- Implement student profile loading.
+- Implement profile mapping to frontend-friendly view models.
+- Implement profile validation.
+- Verify profile records can be created and loaded from the database.
+- Verify profile updates only affect allowed fields.
+- Verify role-specific fields are hidden when not relevant.
+- Verify user identity appears consistently across screens.
+- Verify admin can inspect profiles without seeing hidden secrets.
+
+## 14. Backend Module 3, Catalog
+- Define the product model in detail.
+- Keep vendor ownership as a required relation.
+- Keep category and vertical visible as first-class fields.
+- Keep MRP stored separately from current selling price.
+- Keep flash discount state explicit.
+- Keep stock state explicit.
+- Keep active state explicit.
+- Keep product name concise and human-readable.
+- Keep product description optional but supported if needed.
+- Keep image support simple if included.
+- Keep product sort order deterministic.
+- Keep category filters stable.
+- Keep list endpoints optimized for browse screens.
+- Keep product detail endpoints optimized for quick inspection.
+- Keep catalog responses consistent across student and vendor views.
+- Keep stock changes traceable.
+- Keep price changes traceable.
+- Keep discount changes traceable.
+- Keep inactive products invisible to buyers.
+- Keep unavailable products non-orderable.
+- Keep low stock signals visible but not overly alarming.
+- Keep product cards compact enough for mobile scanning.
+- Keep current price styled as the visual anchor.
+- Keep MRP styled as a comparison reference.
+- Keep savings computed from controlled inputs only.
+- Keep catalog search simple for the first version.
+- Keep filtering behavior predictable.
+- Keep product updates vendor-scoped.
+- Keep product edits restricted to the owner vendor and admins.
+- Keep list queries paginated.
+- Keep sort order by popularity or recency only if truly needed.
+- Keep the MVP manageable with a small number of filters.
+- Implement product entity fields.
+- Implement product create DTO.
+- Implement product update DTO.
+- Implement product list DTO.
+- Implement product detail DTO.
+- Implement product repository queries.
+- Implement product service CRUD methods.
+- Implement product stock toggle methods.
+- Implement product discount toggle methods.
+- Implement product list endpoint.
+- Implement product detail endpoint.
+- Implement category filter endpoint or query parameter.
+- Implement vertical filter endpoint or query parameter.
+- Implement stock filter endpoint or query parameter.
+- Implement frontend catalog grid/list hybrid.
+- Implement frontend filter chips.
+- Implement frontend product card.
+- Implement frontend product detail drawer or page if needed.
+- Implement frontend quick-add interaction.
+- Implement frontend empty catalog state.
+- Implement frontend loading skeletons for product lists.
+- Verify catalog rows render current price and MRP together.
+- Verify unavailable products cannot be added to cart.
+- Verify vendor-only edits cannot be made by students.
+- Verify filtering behaves identically after refresh.
+- Verify catalog data can be explained from the database.
+
+## 15. Backend Module 4, Pricing Rules
+- Define pricing as a server-side responsibility.
+- Define the reference price used for each savings calculation.
+- Define how flash discount combines with current price.
+- Define whether cluster discount stacks with flash discount.
+- Define the order in which discounts are applied.
+- Define whether the order record stores each discount separately.
+- Define whether the order record stores a computed final payable amount.
+- Define whether rounding happens per line item or at the order level.
+- Define whether percentage discounts round up or round down.
+- Define what happens when discount data is missing.
+- Define how stale discount data is rejected.
+- Define how a zero or negative price is prevented.
+- Define how the UI receives the breakdown.
+- Define how the backend emits pricing decision logs.
+- Define how product snapshots capture the price state at purchase time.
+- Define how MRP should behave when it equals current price.
+- Define how savings should behave when no discount is active.
+- Define how discount rules differ between verticals if needed.
+- Define whether restaurant items and grocery items share one pricing engine.
+- Define whether a promo label is allowed without a real discount.
+- Define whether cluster discount applies to all products or only eligible products.
+- Define whether flash discount is product-level or vendor-level.
+- Define whether a product can have multiple active promotions.
+- Define whether price computation is cached or computed on demand.
+- Define whether price computation is revalidated at checkout.
+- Define whether cart preview matches final checkout exactly.
+- Define whether backend recalculates prices after cart submission.
+- Define whether price mismatch triggers a hard failure or a soft refresh.
+- Define whether the frontend can ever override computed price fields.
+- Define whether price math is stored in the order item snapshot.
+- Implement pricing service methods.
+- Implement flash discount application logic.
+- Implement discount breakdown DTOs.
+- Implement line item price calculation.
+- Implement order total calculation.
+- Implement price safety checks.
+- Implement validation for zero or negative payable values.
+- Implement clear logging for pricing decisions.
+- Verify pricing calculations are deterministic for the same input.
+- Verify frontend display values match backend response values.
+- Verify discount stacking rules are deliberate and documented.
+- Verify price changes after catalog edits do not corrupt old orders.
+- Verify rounding does not produce off-by-one currency mistakes.
+
+## 16. Backend Module 5, Cluster Discount Logic
+- Treat cluster logic as a zone-based windowing problem.
+- Use a ten-minute rolling or bucketed window as defined by the architecture.
+- Keep the window key strategy predictable.
+- Key by zone and bucket so checks stay local and fast.
+- Keep the count logic simple enough to inspect in logs.
+- Keep the threshold rule explicit at five eligible orders.
+- Keep eligibility tied to completed checkout attempts or successful order placements as defined by the business rule.
+- Keep Redis use isolated to transient cluster counting.
+- Keep PostgreSQL as the system of record for the final order.
+- Keep cluster eligibility calculation safe when Redis is unavailable.
+- Keep fallback behavior to no cluster discount if cache cannot be used.
+- Keep any cluster award metadata persisted on the order.
+- Keep a human-readable explanation for the discount in the order record.
+- Keep the time zone consistent across zone buckets.
+- Keep retry behavior deterministic when a checkout request is repeated.
+- Keep the cluster count update atomic enough to avoid missed increments.
+- Keep duplicate orders from causing duplicate counting when idempotency is involved.
+- Keep the threshold explanation understandable to the user.
+- Keep the operational logs showing zone, bucket, and count.
+- Keep the cluster discount percentage fixed unless a policy change is made.
+- Keep the rules documented for viva demonstration.
+- Define the Redis key naming convention.
+- Define the current bucket generation strategy.
+- Define the expiration policy for the key.
+- Define the increment behavior for each checkout attempt.
+- Define the read-after-increment behavior.
+- Define the point at which a discount becomes eligible.
+- Define whether the fifth order gets the discount immediately.
+- Define whether later orders in the same window also get the discount.
+- Define whether the discount is order-level or item-level.
+- Define whether zone changes between cart creation and checkout matter.
+- Define whether the user can manually choose a different zone.
+- Implement cluster counter service.
+- Implement cluster eligibility evaluation.
+- Implement cluster discount assignment.
+- Implement cluster explanation text generation.
+- Implement fallback path when Redis is down.
+- Implement order metadata storage for cluster participation.
+- Implement logging for threshold crossing events.
+- Implement tests for zone, window, and threshold behavior.
+- Verify the count resets when the time window changes.
+- Verify the discount only appears when the threshold is crossed.
+- Verify checkout still works when Redis is unavailable.
+- Verify the final payable amount matches the applied rule set.
+
+## 17. Backend Module 6, Wallet
+- Treat wallet balance as a financial record, not a loose UI value.
+- Keep wallet balance stored in the database as authoritative state.
+- Keep wallet ledger entries immutable.
+- Keep credit and debit types explicit.
+- Keep recharge and order debit separate in the service design.
+- Keep each wallet transaction linked to a reason source.
+- Keep each wallet transaction linked to an order when applicable.
+- Keep each wallet transaction timestamped.
+- Keep wallet reads fast for header display.
+- Keep wallet debits idempotent.
+- Keep wallet recharges traceable.
+- Keep wallet failures explicit.
+- Keep insufficient balance checks early and clear.
+- Keep wallet display rounded and readable.
+- Keep wallet history available for review.
+- Keep wallet history exportable if included in scope.
+- Keep currency formatting consistent across screens.
+- Keep recharge handling isolated from order placement.
+- Keep order placement from directly mutating balance without a ledger event.
+- Keep balance reconstruction possible from the ledger.
+- Keep admin visibility into wallet events if required by policy.
+- Define wallet creation timing.
+- Define whether each student receives a wallet at registration or first login.
+- Define the recharge initiation path.
+- Define the recharge confirmation path.
+- Define whether recharge can be mocked in development.
+- Define the minimum recharge amount if any.
+- Define whether failed recharges create ledger entries.
+- Define whether wallet holds pending balances or only settled balances.
+- Define whether wallet history is paginated.
+- Define whether wallet balance is cached in the frontend or fetched fresh.
+- Implement wallet entity.
+- Implement wallet transaction entity.
+- Implement wallet ledger service.
+- Implement wallet recharge endpoint.
+- Implement wallet debit endpoint or service method.
+- Implement balance validation before checkout.
+- Implement transaction history endpoint.
+- Implement frontend balance display.
+- Implement frontend recharge CTA.
+- Implement frontend insufficient balance message.
+- Implement frontend wallet history view if included.
+- Verify a recharge changes balance and writes a ledger record.
+- Verify a debit changes balance and writes a ledger record.
+- Verify failed debit does not change balance.
+- Verify duplicate checkout cannot debit twice.
+- Verify the UI shows the right balance after payment.
+
+## 18. Backend Module 7, Orders
+- Treat order creation as the core transactional flow.
+- Keep order creation atomic with wallet debit and item persistence.
+- Keep order state transitions finite and explicit.
+- Keep order metadata rich enough for troubleshooting.
+- Keep the student, zone, cluster, and payment references present on the order.
+- Keep order total, discount total, and final payable stored separately.
+- Keep order items snapshot-based.
+- Keep order status history if needed for explanation.
+- Keep status names simple and readable.
+- Keep order creation idempotent.
+- Keep order placement failure reasons clear.
+- Keep the order list sorted by recency by default.
+- Keep vendor order views scoped to the vendor.
+- Keep student order views scoped to the owning student.
+- Keep admin order views global if needed.
+- Keep fulfillment states understandable for a campus delivery context.
+- Keep cancellation rules clear if cancellation is in scope.
+- Keep the system safe if payment succeeds but order insertion fails.
+- Keep the system safe if order insertion succeeds but payment handling fails.
+- Keep retries from creating duplicate financial effects.
+- Keep order data explainable after product price updates.
+- Define initial order status.
+- Define terminal order statuses.
+- Define allowed status transitions.
+- Define whether cancellation is before preparation, after preparation, or not in scope.
+- Define whether partial fulfillment is in scope.
+- Define whether refund flow is in scope.
+- Define whether order notes are in scope.
+- Define whether delivery address is replaced by zone selection.
+- Define whether the cart is cleared only after order confirmation.
+- Define whether order placement returns a summary or full record.
+- Implement order entity.
+- Implement order item entity.
+- Implement order create request DTO.
+- Implement order summary DTO.
+- Implement order detail DTO.
+- Implement order repository.
+- Implement order service.
+- Implement order creation transaction.
+- Implement order history retrieval.
+- Implement order state update methods.
+- Implement order snapshot creation from cart and product data.
+- Implement order list for student.
+- Implement order list for vendor.
+- Implement order list for admin if needed.
+- Verify order creation persists all required records together.
+- Verify order status changes follow allowed transitions.
+- Verify order totals match the checked-out breakdown.
+- Verify historical orders remain stable after product edits.
+
+## 19. Backend Module 8, Vendor Operations
+- Treat vendor operations as product and order management tools.
+- Keep vendor access limited to owned products and related orders.
+- Keep vendor onboarding simple if included.
+- Keep vendor dashboard metrics readable.
+- Keep low stock alerts visible.
+- Keep active item counts visible.
+- Keep open order counts visible.
+- Keep flash discount toggles fast to operate.
+- Keep product creation and editing efficient.
+- Keep vendor order views sorted by recency.
+- Keep zone information visible for order preparation.
+- Keep vendor product list filterable by stock state.
+- Keep vendor product list filterable by active state.
+- Keep vendor product actions close to the item row or card.
+- Keep vendor forms short enough for mobile use if vendors use phones.
+- Keep vendor views distinct from student browse views.
+- Keep vendors from editing products they do not own.
+- Keep vendors from seeing unrelated student financial data.
+- Keep vendor actions auditable.
+- Keep vendor state changes synchronized with product availability.
+- Define the vendor dashboard widgets.
+- Define product management form fields.
+- Define stock toggle behavior.
+- Define flash discount toggle behavior.
+- Define order list row content.
+- Define vendor-specific empty states.
+- Define whether bulk actions are in scope.
+- Define whether image upload is in scope.
+- Define whether inventory quantity is tracked beyond stock status.
+- Define whether prep time is shown to vendors.
+- Define whether vendor payout data is in scope.
+- Implement vendor dashboard summary endpoint.
+- Implement vendor product CRUD.
+- Implement vendor stock update endpoint.
+- Implement vendor flash discount endpoint.
+- Implement vendor order list endpoint.
+- Implement vendor order detail endpoint.
+- Implement frontend vendor dashboard.
+- Implement frontend vendor product form.
+- Implement frontend vendor product table or card list.
+- Implement frontend vendor order list.
+- Verify vendor actions are role-restricted.
+- Verify vendor sees only owned products.
+- Verify vendor sees only relevant orders.
+- Verify flash discount changes are visible immediately.
+
+## 20. Backend Module 9, Admin Controls
+- Treat admin as internal governance, not regular user flow.
+- Keep admin routes hidden from normal student and vendor navigation.
+- Keep admin screens separate from public screens.
+- Keep admin actions constrained and auditable.
+- Keep admin access more restrictive than other roles.
+- Keep user moderation simple if included.
+- Keep vendor moderation simple if included.
+- Keep policy settings explicit if included.
+- Keep admin audit logs available.
+- Keep admin visibility into disputes or wallet incidents if required.
+- Keep admin views optimized for oversight, not shopping.
+- Define which admin features are in scope for MVP.
+- Define which admin features are deferred.
+- Define which entities admin can read.
+- Define which entities admin can edit.
+- Define whether admin can suspend accounts.
+- Define whether admin can disable products.
+- Define whether admin can override stock state.
+- Define whether admin can inspect wallet ledger entries.
+- Define whether admin can inspect order histories.
+- Define whether admin can inspect cluster logs.
+- Implement admin route gating.
+- Implement admin dashboard skeleton.
+- Implement admin inspection views if included.
+- Implement admin action audit logging.
+- Verify admin pages do not appear in student or vendor navigation.
+- Verify admin actions are logged.
+- Verify unauthorized users cannot access admin endpoints.
+
+## 21. Frontend Foundation
+- Define the app shell layout first.
+- Define shared typography tokens.
+- Define shared spacing tokens.
+- Define shared color variables.
+- Define shared status colors.
+- Define shared card styling.
+- Define shared button styling.
+- Define shared form control styling.
+- Define shared price display styling.
+- Define shared badge styling.
+- Define shared skeleton styling.
+- Define shared empty state styling.
+- Define shared error state styling.
+- Define the route structure for guest, student, vendor, and admin contexts.
+- Define the global header behavior.
+- Define the global footer behavior if any.
+- Define whether the sidebar exists on desktop.
+- Define whether the mobile shell uses a bottom bar or sticky actions.
+- Define the responsive grid behavior for product listings.
+- Define how the app switches between verticals.
+- Define how exam mode affects the root theme.
+- Define how local state is stored and reset.
+- Define how API data is loaded and cached.
+- Define how protected routes are redirected.
+- Define how loading states are shown during initial fetches.
+- Define how errors are surfaced and retried.
+- Define how forms are validated in the UI.
+- Define how currency and discount information are formatted.
+- Define how icons are standardized across the app.
+- Define how motion remains small and purposeful.
+- Define how accessibility is handled across screens.
+- Define how desktop enhancements differ from mobile interactions.
+
+## 22. Frontend Visual Language
+- Use UPES Blue and White as the primary base.
+- Use Green for grocery emphasis and success states.
+- Use Orange for restaurant emphasis and promotional cues.
+- Keep MRP and savings visually explicit.
+- Keep current price dominant.
+- Keep list and card spacing generous enough for scanning.
+- Keep typography clean and highly legible.
+- Keep mobile touch targets large enough.
+- Keep hover states subtle on desktop.
+- Keep active states obvious on mobile.
+- Keep night mode contrast high.
+- Keep exam mode visually calm but focused.
+- Keep vertical switching visually distinct but not distracting.
+- Keep the theme system implemented through variables, not ad hoc overrides.
+- Keep decorative elements controlled and functional.
+- Keep motion short and purposeful.
+- Keep animation off critical payment actions as much as possible.
+- Keep colors from carrying meaning alone.
+- Keep icons paired with labels where meaning matters.
+- Keep discount tags consistent across the app.
+- Keep product cards structurally identical so users can scan fast.
+- Keep the UI from feeling overly generic.
+- Keep the interface practical and student-friendly.
+
+## 23. Frontend Auth Screens
+- Build the login screen as the first user-facing element.
+- Make the login screen role-aware.
+- Make the role toggle easy to tap.
+- Make the form minimal.
+- Make the form validation immediate.
+- Make error copy explicit.
+- Make login flow clearly separate student and vendor entry.
+- Make the CTA text specific.
+- Make the post-login redirect deterministic.
+- Make the auth screen responsive.
+- Make the auth screen accessible.
+- Make the auth screen visually aligned with the rest of the app.
+- Keep helper text short.
+- Keep password fields masked.
+- Keep forgot password or reset flows out of scope unless needed.
+- Keep sign-up flows out of scope unless needed.
+- Keep guest browsing unavailable before auth.
+- Keep loading states visible when auth is pending.
+- Keep logout behavior discoverable.
+- Keep session expiration messaging polite and clear.
+- Verify that role toggles change the login destination behavior.
+- Verify that invalid input does not submit.
+- Verify that auth errors are readable.
+- Verify that protected content stays hidden before login.
+
+## 24. Frontend Vertical Selector
+- Build the pivot screen after auth.
+- Make the two vertical cards visually prominent.
+- Make the cards tappable and obvious.
+- Make the cards show icon, title, and short description.
+- Make the grocery card use grocery accent color.
+- Make the restaurant card use restaurant accent color.
+- Make the selection state obvious.
+- Make the screen work on mobile first.
+- Make the screen support hover elevation on desktop.
+- Make the action flow from pivot to catalog feel instant.
+- Make the vertical choice persist for the session if needed.
+- Make the pivot accessible by keyboard.
+- Make the pivot cards semantic buttons or links.
+- Make copy concise enough for quick decision making.
+- Make the selection reversible without logging out.
+- Make the pivot state visible in the navigation.
+- Make the selected vertical influence filters and merchandising.
+- Make the screen resilient to reloads.
+- Make the pivot the clear starting point for browsing.
+- Verify the selection updates the next screen context.
+- Verify each card remains readable on small screens.
+- Verify the pivot is not buried under other content.
+
+## 25. Frontend Marketplace View
+- Build the product browsing page as the primary shopping surface.
+- Present products in a grid or list hybrid that scans well.
+- Keep category filter chips visible.
+- Keep availability filters easy to reach.
+- Keep quick add buttons accessible.
+- Keep MRP visible in each card.
+- Keep current price visually strongest.
+- Keep savings visible when applicable.
+- Keep stock state visible without blocking the card.
+- Keep loading skeletons lightweight.
+- Keep product cards consistent in height where possible.
+- Keep the mobile layout single column or near-single column.
+- Keep tablet layout denser but still readable.
+- Keep desktop layout more information-rich.
+- Keep cart summary available as a sticky element on mobile if included.
+- Keep empty state messaging practical.
+- Keep unavailable items non-interactive.
+- Keep low stock labels calm and factual.
+- Keep fast add interactions from feeling hidden.
+- Keep product taps responsive.
+- Verify browsing works after login and vertical selection.
+- Verify filters update the list correctly.
+- Verify pricing values match backend data.
+- Verify unavailable items cannot be ordered.
+
+## 26. Frontend Product Card Rules
+- Show product name prominently.
+- Show current price prominently.
+- Show MRP as a secondary reference.
+- Show savings explicitly when a difference exists.
+- Show stock state in a small but readable label.
+- Show category or vertical context if helpful.
+- Show quick add action without crowding the card.
+- Show flash discount state if active.
+- Show a clear disabled state when stock is unavailable.
+- Show a clear low stock indicator if stock is limited.
+- Keep the card layout stable across similar items.
+- Keep the card tap area large enough.
+- Keep the card hierarchy uniform.
+- Keep the card image area optional and non-blocking.
+- Keep text truncation sensible.
+- Keep price formatting locale-consistent.
+- Keep discount tags short.
+- Keep the card from becoming visually noisy.
+- Keep state transitions smooth but brief.
+- Verify card content stays legible at mobile widths.
+- Verify the quick add action remains accessible.
+- Verify the card does not hide MRP in any context.
+
+## 27. Frontend Checkout
+- Build checkout as a single-screen or near-single-screen flow.
+- Show delivery zone confirmation first or near the top.
+- Show cart summary clearly.
+- Show wallet payment as the default selection.
+- Show price breakdown with all applicable adjustments.
+- Show cluster discount explanation when used.
+- Show flash discount explanation when used.
+- Show final payable amount with visual emphasis.
+- Show the place order CTA at the bottom of the visible flow.
+- Show recharge guidance if balance is insufficient.
+- Show errors inline and near the action that needs attention.
+- Show loading state while the order is being placed.
+- Show success state clearly after placement.
+- Keep checkout friction low.
+- Keep checkout copy factual and short.
+- Keep checkout safe against double submission.
+- Keep checkout aligned with backend-calculated totals.
+- Keep checkout available on mobile without horizontal scrolling.
+- Keep checkout accessible to keyboard and screen readers.
+- Verify the final amount equals the server response.
+- Verify the place order button disables during submission.
+- Verify balance checks happen before submission completes.
+- Verify wallet insufficiency blocks order placement.
+
+## 28. Frontend Wallet UX
+- Make wallet balance visible in the header or checkout summary.
+- Make recharge available when balance is low.
+- Make recharge copy simple.
+- Make payment history readable.
+- Make debit and credit transactions visually distinct.
+- Make amounts easy to scan.
+- Make insufficient balance errors direct.
+- Make success feedback unmistakable.
+- Make the wallet feel trustworthy and financial.
+- Make the wallet history immutable from the user perspective.
+- Make transaction references visible if useful.
+- Make payment source labels easy to understand.
+- Make reloads preserve the latest known balance.
+- Make the header balance never exceed the server truth.
+- Make the recharge path clearly separated from checkout confirmation.
+- Make the wallet screen mobile friendly.
+- Make the wallet screen accessible.
+- Make the wallet screen use consistent currency formatting.
+- Make balance changes update after successful transactions.
+- Verify recharge changes both balance and ledger visibility.
+- Verify failed payment does not mislead the user.
+
+## 29. Frontend Vendor Dashboard
+- Make active items visible at a glance.
+- Make low stock visible at a glance.
+- Make open orders visible at a glance.
+- Make flash discount actions easy to trigger.
+- Make stock update actions easy to trigger.
+- Make product management shortcuts obvious.
+- Make the dashboard useful on a laptop and on mobile.
+- Make the dashboard data compact but not cramped.
+- Make list items actionable.
+- Make status labels readable.
+- Make order preparation information visible.
+- Make zone information visible where useful.
+- Make the dashboard useful for same-day operations.
+- Make vendor views clearly distinct from student browse views.
+- Make shortcuts consistent across dashboard cards and product lists.
+- Verify dashboard metrics reflect backend values.
+- Verify product actions update immediately after success.
+- Verify the dashboard remains understandable at small widths.
+
+## 30. Frontend Night Mode and Exam Mode
+- Trigger night mode after 10:00 PM local time.
+- Keep the switch automatic unless user override is explicitly designed.
+- Keep the theme based on CSS variables.
+- Keep the contrast high enough for reading at night.
+- Keep neon yellow highlights limited to study-oriented accents.
+- Keep the exam mode distinct from default dark mode if both exist.
+- Keep the interface calmer at night, not more crowded.
+- Keep essential actions visible.
+- Keep non-essential decoration subdued.
+- Keep text sizes readable under dark conditions.
+- Keep image brightness controlled.
+- Keep card borders visible enough.
+- Keep accessibility intact in both modes.
+- Keep theme changes consistent across the entire app.
+- Keep the mode transition smooth and non-jarring.
+- Verify the mode changes at the correct local time.
+- Verify the mode preserves contrast.
+- Verify the mode does not break component styling.
+
+## 31. Frontend Accessibility
+- Use semantic buttons and links.
+- Use visible focus states.
+- Use labels for all form controls.
+- Use readable contrast ratios.
+- Use icons with text where meaning is not obvious.
+- Use aria attributes where needed.
+- Use keyboard navigation across all important screens.
+- Use large enough tap targets on mobile.
+- Use error messages that explain the fix.
+- Use loading states that expose progress.
+- Use text hierarchy that does not rely on color only.
+- Use accessible currency formatting.
+- Use accessible stock and status labels.
+- Use screen-reader-friendly confirmations for critical actions.
+- Use motion sparingly and avoid motion overload.
+- Verify all primary flows are keyboard reachable.
+- Verify the app remains readable without color cues.
+- Verify the app is comfortable at a small phone width.
+
+## 32. Frontend Data and State Management
+- Keep server data in one predictable query layer.
+- Keep temporary UI state local when practical.
+- Keep cart state isolated from server state until checkout.
+- Keep selected vertical state shared across relevant screens.
+- Keep auth state centralized.
+- Keep wallet balance state refreshable.
+- Keep order creation state isolated from browse state.
+- Keep vendor edit forms local to the form.
+- Keep loading and error state consistent across features.
+- Keep derived price calculations aligned to server rules.
+- Keep UI state resets explicit after logout.
+- Keep page transitions smooth but not confusing.
+- Keep refresh behavior deterministic.
+- Keep stale data visually distinguishable when needed.
+- Keep optimistic UI updates minimal unless justified.
+- Keep rollback behavior simple when a server action fails.
+
+## 33. Frontend Shared Components
+- Build a reusable card component first.
+- Build a reusable badge component first.
+- Build a reusable button component first.
+- Build a reusable money component first.
+- Build a reusable price row component first.
+- Build a reusable input component first.
+- Build a reusable select component first.
+- Build a reusable toggle component first.
+- Build a reusable skeleton component first.
+- Build a reusable empty state component first.
+- Build a reusable error banner component first.
+- Build a reusable confirmation dialog component first.
+- Build a reusable page header component first.
+- Build a reusable section header component first.
+- Build a reusable icon-label pair component first.
+- Build a reusable status chip component first.
+- Keep these components style-consistent.
+- Keep these components accessible.
+- Keep these components theme-aware.
+- Verify component reuse across multiple screens.
+
+## 34. Data Model Implementation Checklist
+- Confirm every persisted concept has a table or equivalent entity.
+- Confirm every important relation is represented explicitly.
+- Confirm every financial change has a ledger record.
+- Confirm every order has immutable line item snapshots.
+- Confirm every vendor product belongs to one owner.
+- Confirm every product has category and vertical metadata.
+- Confirm every order has zone metadata.
+- Confirm every user has a role.
+- Confirm every wallet belongs to one owner.
+- Confirm every wallet transaction has a reason.
+- Confirm every discount decision can be reconstructed.
+- Confirm every timestamp uses one agreed strategy.
+- Confirm every status field uses controlled values.
+- Confirm every key query path has an index if needed.
+- Confirm every unique constraint protects against duplicates.
+- Confirm every nullable field is intentionally nullable.
+- Confirm every deletion strategy is clear.
+- Confirm every sensitive field is excluded from public payloads.
+- Confirm every order total can be recomputed from item snapshots.
+- Confirm every UI summary can be derived from backend data.
+
+## 35. Validation and Error Handling Checklist
+- Validate login inputs before submission.
+- Validate role selection before access.
+- Validate product forms before save.
+- Validate stock state transitions before save.
+- Validate price fields before save.
+- Validate wallet recharge amount before save.
+- Validate order item quantity before checkout.
+- Validate zone selection before checkout.
+- Validate checkout balance before order placement.
+- Validate discount calculations before persistence.
+- Validate idempotency keys if used.
+- Validate owner permissions before product edits.
+- Validate admin permissions before admin actions.
+- Validate required DTO fields on the server.
+- Validate enums against known values.
+- Validate negative or zero monetary values out.
+- Validate missing product states gracefully.
+- Validate missing wallet states gracefully.
+- Validate missing zone states gracefully.
+- Validate network failure responses clearly.
+- Validate unauthorized responses clearly.
+- Validate forbidden responses clearly.
+- Validate not-found responses clearly.
+- Validate server errors without exposing internals.
+- Verify every validation failure has a user-fixable message where possible.
+
+## 36. Testing Strategy
+- Test the backend unit-by-unit.
+- Test the service layer with focused unit tests.
+- Test the controller layer with integration tests.
+- Test database interactions where persistence matters.
+- Test wallet ledgers carefully.
+- Test order creation carefully.
+- Test cluster eligibility carefully.
+- Test role restrictions carefully.
+- Test vendor ownership carefully.
+- Test frontend component rendering.
+- Test checkout calculations.
+- Test price display behavior.
+- Test responsive behavior at core widths.
+- Test keyboard accessibility for key screens.
+- Test error states for network and validation failures.
+- Test exam mode behavior.
+- Test fallback behavior when Redis is unavailable.
+- Test duplicate submission handling.
+- Test historical order stability after product edits.
+- Test that the simplest happy path works end to end.
+
+## 37. Backend Test Cases To Prioritize
+- Login succeeds with valid credentials and correct role.
+- Login fails with invalid credentials.
+- Login fails with role mismatch.
+- Protected route rejects anonymous access.
+- Student cannot access vendor product edit endpoints.
+- Vendor cannot access student wallet endpoints.
+- Product create persists the expected fields.
+- Product update changes only allowed fields.
+- Catalog list returns active products only.
+- Unavailable products remain unorderable.
+- Wallet recharge writes a credit ledger entry.
+- Wallet debit writes a debit ledger entry.
+- Wallet debit fails when balance is too low.
+- Order creation writes order and items atomically.
+- Order creation uses snapshot data.
+- Order creation is idempotent for repeated requests.
+- Flash discount calculation returns expected values.
+- Cluster discount triggers at the fifth eligible order.
+- Cluster discount does not trigger before the threshold.
+- Redis fallback path still completes checkout.
+- Vendor order list only shows owned orders.
+- Admin endpoints enforce stricter access controls.
+
+## 38. Frontend Test Cases To Prioritize
+- Login renders required fields and role toggle.
+- Login validation prevents empty submission.
+- Pivot screen renders two clear cards.
+- Catalog screen renders product cards with MRP and current price.
+- Filters update the product list.
+- Quick add updates cart state.
+- Checkout renders the correct price breakdown.
+- Insufficient wallet balance blocks order placement.
+- Recharge CTA is visible when needed.
+- Vendor dashboard shows summary metrics.
+- Vendor product form supports create and edit flows.
+- Vendor order list renders recency properly.
+- Exam mode styles apply after time threshold.
+- Theme variables apply across screens.
+- Empty states are clear and not broken.
+- Error banners show useful messages.
+- Mobile layouts remain readable.
+- Desktop layouts remain information-rich.
+
+## 39. Observability Checklist
+- Log auth success and failure.
+- Log product create and update events.
+- Log wallet recharge and debit events.
+- Log order creation and failure events.
+- Log cluster threshold crossing events.
+- Log fallback when Redis is unavailable.
+- Log vendor flash discount updates.
+- Log admin moderation actions.
+- Attach a request correlation identifier where practical.
+- Include zone and window references in cluster logs.
+- Include order id references in payment logs.
+- Include user id references in security-relevant logs.
+- Keep logs structured if possible.
+- Keep logs searchable.
+- Keep logs free of sensitive values.
+- Keep metrics focused on checkout, wallet, and order volume.
+- Keep error spikes visible during testing.
+- Keep operational traces understandable during demos.
+
+## 40. Security Checklist
+- Require authentication for protected routes.
+- Restrict actions by role.
+- Restrict vendor operations to owned records.
+- Restrict admin operations to admins.
+- Keep sensitive data out of client payloads.
+- Keep password handling secure.
+- Keep session or token handling safe from trivial leaks.
+- Keep server-side price computation mandatory.
+- Keep wallet debit protected against duplication.
+- Keep checkout protected against replay.
+- Keep log output free of secrets.
+- Keep configuration values in environment variables.
+- Keep CORS and CSRF behavior aligned to the chosen auth model.
+- Keep unsafe direct database access out of the frontend.
+- Keep any demo shortcuts clearly separated from production-like paths.
+
+## 41. Deployment and Environment Checklist
+- Create a local development environment first.
+- Create a staging-like environment if available.
+- Create environment variables for backend and frontend.
+- Create a database for local testing.
+- Create a Redis instance for cluster logic testing.
+- Create seed data for demo accounts and sample catalog items.
+- Verify startup order for dependent services.
+- Verify health endpoints during startup.
+- Verify migrations run before app startup where needed.
+- Verify the frontend can reach the backend API.
+- Verify the backend can reach the database.
+- Verify the backend can reach Redis if present.
+- Verify the app can boot without extra manual steps beyond documented setup.
+- Verify the deployment package includes required assets.
+- Verify the build artifacts are reproducible.
+
+## 42. Demo Readiness Checklist
+- Prepare one student login.
+- Prepare one vendor login.
+- Prepare one admin login if needed.
+- Prepare sample grocery items.
+- Prepare sample restaurant items.
+- Prepare at least one low-stock item.
+- Prepare at least one flash discount item.
+- Prepare at least one wallet with low balance.
+- Prepare at least one zone with cluster eligibility in progress.
+- Prepare at least one order history record.
+- Prepare one clear checkout path.
+- Prepare one clear vendor edit path.
+- Prepare one clear admin control path.
+- Prepare notes for how cluster logic works in plain language.
+- Prepare notes for how wallet ledger works in plain language.
+- Prepare notes for how order snapshots work in plain language.
+- Prepare notes for why MRP remains visible.
+- Prepare notes for why pricing is server-side.
+- Prepare notes for why Redis is only used for transient window logic.
+- Prepare notes for why exam mode exists.
+
+## 43. Build Order By Sprint
+- Sprint 1: foundation, schema, auth, and shared UI primitives.
+- Sprint 2: catalog browsing and product display.
+- Sprint 3: cart, checkout, and order creation.
+- Sprint 4: wallet recharge and ledger handling.
+- Sprint 5: cluster discounts and flash discounts.
+- Sprint 6: vendor dashboard and vendor product management.
+- Sprint 7: admin controls and audit visibility.
+- Sprint 8: accessibility, responsive polish, and exam mode.
+- Sprint 9: testing, bug fixing, and demo hardening.
+- Sprint 10: documentation, walkthrough script, and final freeze.
+
+## 44. Definition of Done for the Whole Project
+- Students can authenticate and browse only after login.
+- Students can choose groceries or restaurants/cafes after login.
+- Students can browse products with MRP visible.
+- Students can add products to cart.
+- Students can check out with wallet by default.
+- Students can see a price breakdown before confirming.
+- Students can see wallet insufficiency clearly.
+- Students can recharge wallet and try again.
+- Orders are saved with snapshots and status.
+- Vendor users can manage products they own.
+- Vendor users can update stock and flash discounts.
+- Vendor users can review incoming orders.
+- Cluster discount logic works by zone and ten-minute window.
+- The app remains stable if Redis is unavailable.
+- The app presents exam mode after the configured time.
+- The app is readable on mobile.
+- The app is coherent on desktop.
+- The backend enforces role and pricing rules.
+- Logs and audit fields explain important actions.
+- The project can be demonstrated end to end without manual confusion.
+
+## 45. Final Implementation Notes
+- Keep the first release honest and functional.
+- Keep the implementation explainable in simple terms.
+- Keep the UI polished enough to be demo-ready.
+- Keep the backend strict enough to protect pricing integrity.
+- Keep the data model simple enough to maintain.
+- Keep the flow fast enough for students using phones.
+- Keep the vendor tasks quick enough for busy operators.
+- Keep the documentation updated as the code changes.
+- Keep the guide versioned alongside the repository.
+- Keep every enhancement aligned to the original campus use case.
+- Keep any future extension consistent with the same design logic.
+- Keep the implementation guide as the canonical planning artifact for the project.
