@@ -19,6 +19,7 @@ import com.upes.campusdelivery.pricing.service.PricingService;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import org.mockito.ArgumentMatcher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -160,11 +161,11 @@ class OrderServiceTest {
     }
   }
 
-  private static java.util.function.Predicate<String> sqlContains(String fragment) {
+  private static ArgumentMatcher<String> sqlContains(String fragment) {
     return sql -> sql != null && sql.contains(fragment);
   }
 
-  private static java.util.function.Predicate<String> sqlContainsAll(String... fragments) {
+  private static ArgumentMatcher<String> sqlContainsAll(String... fragments) {
     return sql -> {
       if (sql == null) {
         return false;
