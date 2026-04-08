@@ -50,7 +50,7 @@ public class WalletService {
     jdbcTemplate.update(
         """
         INSERT INTO wallet_transactions (wallet_id, transaction_type, payment_source, amount, reason)
-        VALUES (?, 'CREDIT', 'EXTERNAL', ?, ?)
+        VALUES (?, 'CREDIT', 'WALLET_RECHARGE', ?, ?)
         """,
         wallet.walletId(),
         request.amount(),

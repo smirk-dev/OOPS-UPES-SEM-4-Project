@@ -6,6 +6,7 @@ import com.upes.campusdelivery.wallet.dto.WalletRechargeRequest;
 import com.upes.campusdelivery.wallet.dto.WalletRechargeResponse;
 import com.upes.campusdelivery.wallet.dto.WalletTransactionsResponse;
 import com.upes.campusdelivery.wallet.service.WalletService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -28,16 +29,19 @@ public class WalletController {
 
   @GetMapping("/balance")
   @PreAuthorize("hasRole('STUDENT')")
-  public ApiResponse<WalletBalanceResponse> getBalance(@AuthenticationPrincipal String username) {
-    return ApiResponse.ok(walletService.getCurrentUserWalletBalance(username), "n/a");
+  public ApiResponse<WalletBalanceResponse> getBalance(
+      @AuthenticationPrincipal String username,
+      HttpServletRequest httpRequest) {
+    return ApiResponse.ok(walletService.getCurrentUserWalletBalance(username), traceId(httpRequest));
   }
 
   @PostMapping("/recharge")
   @PreAuthorize("hasRole('STUDENT')")
   public ApiResponse<WalletRechargeResponse> recharge(
       @AuthenticationPrincipal String username,
-      @Valid @RequestBody WalletRechargeRequest request) {
-    return ApiResponse.ok(walletService.rechargeCurrentUserWallet(username, request), "n/a");
+      @Valid @RequestBody WalletRechargeRequest request,
+      HttpServletRequest httpRequest) {
+    return ApiResponse.ok(walletService.rechargeCurrentUserWallet(username, request), traceId(httpRequest));
   }
 
   @GetMapping("/transactions")
@@ -45,7 +49,13 @@ public class WalletController {
   public ApiResponse<WalletTransactionsResponse> getTransactions(
       @AuthenticationPrincipal String username,
       @RequestParam(defaultValue = "0") int page,
-      @RequestParam(defaultValue = "10") int size) {
-    return ApiResponse.ok(walletService.getCurrentUserTransactions(username, page, size), "n/a");
+      @RequestParam(defaultValue = "10") int size,
+      HttpServletRequest httpRequest) {
+    return ApiResponse.ok(walletService.getCurrentUserTransactions(username, page, size), traceId(httpRequest));
+  }
+
+  private String traceId(HttpServletRequest request) {
+    String traceId = request.getHeader("X-Request-Id");
+    return traceId == null || traceId.isBlank() ? "n/a" : traceId;
   }
 }

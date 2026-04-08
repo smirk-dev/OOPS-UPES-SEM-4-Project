@@ -31,7 +31,7 @@ The project is implemented end to end for the current scope.
 
 The repository is organized as a monorepo.
 
-- `apps/backend`: Spring Boot API in Java 17.
+- `apps/backend`: Spring Boot API in Java 21.
 - `apps/frontend`: Next.js 14 App Router frontend.
 - `packages/contracts`: Shared JSON contracts for enums and API envelope shapes.
 - `scripts`: Local automation for dev, demo, and release validation.
@@ -141,7 +141,7 @@ The product keeps pricing explicit so the user can see exactly where the final n
 
 Install these before running the project locally:
 
-- Java 17+
+- Java 21+
 - Maven 3.9+
 - Node.js 20+
 - npm 10+
