@@ -343,5 +343,5 @@ The release check script does not rely on a fixed Maven path. It uses `MAVEN_CMD
 - The backend uses JWT-based stateless authentication.
 - Public endpoints are intentionally limited to health and login-related routes.
 - Pricing and discount logic stay on the server so the result is auditable.
-- Role mismatch is blocked rather than silently redirected.
+- Role mismatch is redirected to the correct role home instead of allowing cross-role access.
 - The app is designed to be easy to explain in a viva, so the implementation favors clarity over unnecessary abstraction.

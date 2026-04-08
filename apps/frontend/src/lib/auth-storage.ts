@@ -55,7 +55,7 @@ function readCookie(name: string): string {
 function getSessionMaxAgeSeconds(token: string): number {
   const exp = getJwtExp(token);
   if (exp == null) {
-    return 86400;
+    return 0;
   }
 
   const nowSeconds = Math.floor(Date.now() / 1000);
@@ -66,7 +66,7 @@ function getSessionMaxAgeSeconds(token: string): number {
 function isJwtExpired(token: string): boolean {
   const exp = getJwtExp(token);
   if (exp == null) {
-    return false;
+    return true;
   }
   return Math.floor(Date.now() / 1000) >= exp;
 }
