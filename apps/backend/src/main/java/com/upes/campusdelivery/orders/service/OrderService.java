@@ -84,6 +84,11 @@ public class OrderService {
         BigDecimal clusterDiscountAmount = clusterPreview.discountAmount();
         BigDecimal totalDiscount = platformDiscount.add(clusterDiscountAmount).setScale(2, RoundingMode.HALF_UP);
         BigDecimal finalPayable = finalSubtotal.subtract(totalDiscount).setScale(2, RoundingMode.HALF_UP);
+        final BigDecimal initialClusterDiscountAmount = clusterDiscountAmount;
+        final BigDecimal initialTotalDiscount = totalDiscount;
+        final BigDecimal initialFinalPayable = finalPayable;
+        final boolean initialClusterDiscountApplied = clusterPreview.eligibleIfPlacedNow();
+        final String initialClusterWindowKey = clusterPreview.eligibleIfPlacedNow() ? clusterPreview.windowKey() : null;
 
         BigDecimal walletBalanceAfter =
             jdbcTemplate.queryForObject(
@@ -114,13 +119,13 @@ public class OrderService {
             preparedStatement.setLong(1, userWallet.userId());
             preparedStatement.setLong(2, request.zoneId());
             preparedStatement.setBigDecimal(3, finalSubtotal);
-            preparedStatement.setBigDecimal(4, totalDiscount);
+            preparedStatement.setBigDecimal(4, initialTotalDiscount);
             preparedStatement.setBigDecimal(5, platformDiscount);
-            preparedStatement.setBigDecimal(6, clusterDiscountAmount);
-            preparedStatement.setBigDecimal(7, finalPayable);
+            preparedStatement.setBigDecimal(6, initialClusterDiscountAmount);
+            preparedStatement.setBigDecimal(7, initialFinalPayable);
             preparedStatement.setBigDecimal(8, walletBalanceAfter);
-            preparedStatement.setBoolean(9, clusterPreview.eligibleIfPlacedNow());
-            preparedStatement.setString(10, clusterPreview.eligibleIfPlacedNow() ? clusterPreview.windowKey() : null);
+            preparedStatement.setBoolean(9, initialClusterDiscountApplied);
+            preparedStatement.setString(10, initialClusterWindowKey);
             preparedStatement.setString(11, normalizedKey);
             return preparedStatement;
         }, orderKeyHolder);
