@@ -160,7 +160,26 @@ public class OrderService {
         );
 
         Instant createdAt = createdAtTs == null ? Instant.now() : createdAtTs.toInstant();
-        pricingService.registerClusterDiscount(request.zoneId(), finalSubtotal);
+        boolean clusterDiscountApplied = clusterPreview.eligibleIfPlacedNow();
+        String clusterWindowKey = clusterPreview.eligibleIfPlacedNow() ? clusterPreview.windowKey() : null;
+
+        PricingService.ClusterDiscountResult clusterResult = pricingService.registerClusterDiscount(request.zoneId(), finalSubtotal);
+        if (clusterResult.redisAvailable()) {
+            clusterDiscountApplied = clusterResult.eligible();
+            clusterWindowKey = clusterResult.eligible() ? clusterResult.windowKey() : null;
+
+            jdbcTemplate.update(
+                """
+                UPDATE orders
+                SET cluster_discount_applied = ?, cluster_window_key = ?
+                WHERE id = ?
+                """,
+                clusterDiscountApplied,
+                clusterWindowKey,
+                orderId
+            );
+        }
+
         log.info("order-created username={} orderId={} zoneId={} finalPayable={} totalDiscount={}", username, orderId, request.zoneId(), finalPayable, totalDiscount);
         auditService.record(username, "STUDENT", "ORDER_CREATED", "ORDER", orderId, "n/a", java.util.Map.of("zoneId", request.zoneId(), "subtotal", finalSubtotal, "totalDiscount", totalDiscount, "finalPayable", finalPayable));
         return new CreateOrderResponse(
@@ -173,8 +192,8 @@ public class OrderService {
             walletBalanceAfter,
             createdAt,
             false,
-            clusterPreview.eligibleIfPlacedNow(),
-            clusterPreview.eligibleIfPlacedNow() ? clusterPreview.windowKey() : null
+            clusterDiscountApplied,
+            clusterWindowKey
         );
     }
 

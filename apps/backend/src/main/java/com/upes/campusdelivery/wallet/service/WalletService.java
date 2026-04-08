@@ -162,7 +162,8 @@ public class WalletService {
     if (note == null || note.isBlank()) {
       return "Wallet recharge";
     }
-    return note.strip();
+    String normalized = note.strip();
+    return normalized.length() <= 255 ? normalized : normalized.substring(0, 255);
   }
 
   private record WalletRow(Long walletId, Long userId, BigDecimal currentBalance) {}
