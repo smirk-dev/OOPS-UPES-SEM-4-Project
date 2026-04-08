@@ -168,14 +168,82 @@ public class OrderService {
             clusterDiscountApplied = clusterResult.eligible();
             clusterWindowKey = clusterResult.eligible() ? clusterResult.windowKey() : null;
 
+            BigDecimal registeredClusterDiscount = clusterResult.discountAmount();
+            BigDecimal registeredTotalDiscount = platformDiscount.add(registeredClusterDiscount).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal registeredFinalPayable = finalSubtotal.subtract(registeredTotalDiscount).setScale(2, RoundingMode.HALF_UP);
+
+            BigDecimal payableDelta = registeredFinalPayable.subtract(finalPayable).setScale(2, RoundingMode.HALF_UP);
+            if (payableDelta.signum() > 0) {
+                BigDecimal adjustedBalanceAfter =
+                    jdbcTemplate.queryForObject(
+                        """
+                        UPDATE wallets
+                        SET current_balance = current_balance - ?, updated_at = CURRENT_TIMESTAMP
+                        WHERE id = ? AND current_balance >= ?
+                        RETURNING current_balance
+                        """,
+                        BigDecimal.class,
+                        payableDelta,
+                        userWallet.walletId(),
+                        payableDelta);
+
+                if (adjustedBalanceAfter == null) {
+                    throw new AppException("INSUFFICIENT_WALLET_BALANCE", "Wallet balance is insufficient.", HttpStatus.BAD_REQUEST);
+                }
+
+                walletBalanceAfter = adjustedBalanceAfter;
+            } else if (payableDelta.signum() < 0) {
+                BigDecimal refundAmount = payableDelta.abs();
+                BigDecimal adjustedBalanceAfter =
+                    jdbcTemplate.queryForObject(
+                        """
+                        UPDATE wallets
+                        SET current_balance = current_balance + ?, updated_at = CURRENT_TIMESTAMP
+                        WHERE id = ?
+                        RETURNING current_balance
+                        """,
+                        BigDecimal.class,
+                        refundAmount,
+                        userWallet.walletId());
+
+                if (adjustedBalanceAfter == null) {
+                    throw new AppException("ORDER_CREATE_FAILED", "Unable to update wallet balance.", HttpStatus.INTERNAL_SERVER_ERROR);
+                }
+
+                walletBalanceAfter = adjustedBalanceAfter;
+            }
+
+            clusterDiscountAmount = registeredClusterDiscount;
+            totalDiscount = registeredTotalDiscount;
+            finalPayable = registeredFinalPayable;
+
             jdbcTemplate.update(
                 """
                 UPDATE orders
-                SET cluster_discount_applied = ?, cluster_window_key = ?
+                SET cluster_discount_applied = ?,
+                    cluster_window_key = ?,
+                    cluster_discount_amount = ?,
+                    discount_amount = ?,
+                    final_payable = ?,
+                    wallet_balance_after_debit = ?
                 WHERE id = ?
                 """,
                 clusterDiscountApplied,
                 clusterWindowKey,
+                clusterDiscountAmount,
+                totalDiscount,
+                finalPayable,
+                walletBalanceAfter,
+                orderId
+            );
+
+            jdbcTemplate.update(
+                """
+                UPDATE wallet_transactions
+                SET amount = ?
+                WHERE order_id = ? AND transaction_type = 'DEBIT' AND payment_source = 'ORDER_CHECKOUT'
+                """,
+                finalPayable,
                 orderId
             );
         }

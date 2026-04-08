@@ -30,7 +30,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       SERVER_PORT: 8080
-      JWT_SECRET: change-me-to-a-strong-32-byte-minimum-secret
+      JWT_SECRET: ${JWT_SECRET:-change-me-to-a-strong-32-byte-minimum-secret}
     ports:
       - "8080:8080"
 
@@ -41,6 +41,7 @@ services:
       - backend
     environment:
       NEXT_PUBLIC_API_BASE_URL: http://localhost:8080/api/v1
+      JWT_SECRET: ${JWT_SECRET:-change-me-to-a-strong-32-byte-minimum-secret}
     ports:
       - "3000:3000"
 

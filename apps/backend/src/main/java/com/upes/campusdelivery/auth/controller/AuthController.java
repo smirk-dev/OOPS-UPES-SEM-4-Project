@@ -29,6 +29,6 @@ public class AuthController {
     ) {
         LoginResponse response = authService.login(request);
         String traceId = servletRequest.getHeader("X-Request-Id");
-        return ResponseEntity.ok(ApiResponse.ok(response, traceId == null ? "n/a" : traceId));
+        return ResponseEntity.ok(ApiResponse.ok(response, traceId == null || traceId.isBlank() ? "n/a" : traceId));
     }
 }
