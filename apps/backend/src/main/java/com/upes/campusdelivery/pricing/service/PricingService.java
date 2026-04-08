@@ -53,7 +53,7 @@ public class PricingService {
             Long currentCount = readZoneWindowCount(windowKey);
             boolean eligibleIfPlacedNow = currentCount + 1 >= CLUSTER_THRESHOLD;
             BigDecimal discount = eligibleIfPlacedNow ? computeClusterDiscount(subtotal) : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
-            log.info("pricing-preview zoneId={} windowKey={} currentCount={} eligible={} discount={}", zoneId, windowKey, currentCount, eligibleIfPlacedNow, discount);
+            log.debug("pricing-preview zoneId={} windowKey={} currentCount={} eligible={} discount={}", zoneId, windowKey, currentCount, eligibleIfPlacedNow, discount);
 
             return new ClusterDiscountPreview(true, windowKey, currentCount, eligibleIfPlacedNow, discount);
         } catch (DataAccessException exception) {
@@ -63,6 +63,10 @@ public class PricingService {
     }
 
     public ClusterDiscountResult registerClusterDiscount(Long zoneId, BigDecimal subtotal) {
+        return registerClusterDiscount(zoneId, subtotal, null, null, "n/a");
+    }
+
+    public ClusterDiscountResult registerClusterDiscount(Long zoneId, BigDecimal subtotal, String actorUsername, String actorRole, String traceId) {
         String windowKey = clusterWindowKey(zoneId, Instant.now());
 
         try {
@@ -70,7 +74,7 @@ public class PricingService {
             boolean eligible = countAfterIncrement >= CLUSTER_THRESHOLD;
             BigDecimal discount = eligible ? computeClusterDiscount(subtotal) : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
             log.info("pricing-register zoneId={} windowKey={} countAfterIncrement={} eligible={} discount={}", zoneId, windowKey, countAfterIncrement, eligible, discount);
-            auditService.record(null, null, eligible ? "CLUSTER_DISCOUNT_APPLIED" : "CLUSTER_DISCOUNT_CHECK", "PRICING_WINDOW", zoneId, "n/a", java.util.Map.of("windowKey", windowKey, "countAfterIncrement", countAfterIncrement, "eligible", eligible, "discount", discount));
+            auditService.record(actorUsername, actorRole, eligible ? "CLUSTER_DISCOUNT_APPLIED" : "CLUSTER_DISCOUNT_CHECK", "PRICING_WINDOW", zoneId, traceId, java.util.Map.of("windowKey", windowKey, "countAfterIncrement", countAfterIncrement, "eligible", eligible, "discount", discount));
             return new ClusterDiscountResult(true, windowKey, countAfterIncrement, eligible, discount);
         } catch (DataAccessException exception) {
             log.warn("pricing-register-redis-unavailable zoneId={} windowKey={}", zoneId, windowKey, exception);

@@ -44,13 +44,18 @@ public class OrderService {
 
     @Transactional
     public CreateOrderResponse createOrder(String username, String idempotencyKey, CreateOrderRequest request) {
+        return createOrder(username, idempotencyKey, request, "n/a");
+    }
+
+    @Transactional
+    public CreateOrderResponse createOrder(String username, String idempotencyKey, CreateOrderRequest request, String traceId) {
         String normalizedKey = normalizeIdempotencyKey(idempotencyKey);
         UserWalletRow userWallet = getUserWalletOrThrow(username);
 
         CreateOrderResponse replay = findReplayOrder(userWallet.userId(), normalizedKey);
         if (replay != null) {
             log.info("order-replay username={} idempotencyKey={} orderId={}", username, normalizedKey, replay.orderId());
-            auditService.record(username, "STUDENT", "ORDER_REPLAY", "ORDER", replay.orderId(), "n/a", java.util.Map.of("idempotencyKey", normalizedKey));
+            auditService.record(username, "STUDENT", "ORDER_REPLAY", "ORDER", replay.orderId(), traceId, java.util.Map.of("idempotencyKey", normalizedKey));
             return replay;
         }
 
@@ -169,7 +174,7 @@ public class OrderService {
         boolean clusterDiscountApplied = clusterPreview.eligibleIfPlacedNow();
         String clusterWindowKey = clusterPreview.eligibleIfPlacedNow() ? clusterPreview.windowKey() : null;
 
-        PricingService.ClusterDiscountResult clusterResult = pricingService.registerClusterDiscount(request.zoneId(), finalSubtotal);
+        PricingService.ClusterDiscountResult clusterResult = pricingService.registerClusterDiscount(request.zoneId(), finalSubtotal, username, "STUDENT", traceId);
         BigDecimal registeredClusterDiscount = clusterResult.redisAvailable()
             ? clusterResult.discountAmount()
             : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
@@ -266,7 +271,7 @@ public class OrderService {
         );
 
         log.info("order-created username={} orderId={} zoneId={} finalPayable={} totalDiscount={}", username, orderId, request.zoneId(), finalPayable, totalDiscount);
-        auditService.record(username, "STUDENT", "ORDER_CREATED", "ORDER", orderId, "n/a", java.util.Map.of("zoneId", request.zoneId(), "subtotal", finalSubtotal, "totalDiscount", totalDiscount, "finalPayable", finalPayable));
+        auditService.record(username, "STUDENT", "ORDER_CREATED", "ORDER", orderId, traceId, java.util.Map.of("zoneId", request.zoneId(), "subtotal", finalSubtotal, "totalDiscount", totalDiscount, "finalPayable", finalPayable));
         return new CreateOrderResponse(
             orderId,
             "PLACED",

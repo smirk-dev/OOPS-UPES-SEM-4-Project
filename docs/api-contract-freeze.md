@@ -6,6 +6,7 @@ This document freezes the MVP API contract for viva and demo.
 - Contract version: v1
 - Freeze date: 2026-04-08
 - Base URL: /api/v1
+- Endpoint paths below are relative to this Base URL.
 
 ## Stable Endpoints
 
@@ -42,7 +43,7 @@ This document freezes the MVP API contract for viva and demo.
 - PATCH /admin/products/{productId}/active?active=&reason=
 
 ## Response Envelope
-All endpoints except `/health` use this envelope:
+All endpoints except `/api/v1/health` use this envelope:
 
 {
   "success": true,

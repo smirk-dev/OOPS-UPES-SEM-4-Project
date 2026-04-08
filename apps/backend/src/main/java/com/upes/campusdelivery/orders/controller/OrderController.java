@@ -38,8 +38,9 @@ public class OrderController {
         @Valid @RequestBody CreateOrderRequest request,
         HttpServletRequest httpRequest
     ) {
-        CreateOrderResponse response = orderService.createOrder(username, idempotencyKey, request);
-        return ResponseEntity.ok(ApiResponse.ok(response, traceId(httpRequest)));
+        String traceId = traceId(httpRequest);
+        CreateOrderResponse response = orderService.createOrder(username, idempotencyKey, request, traceId);
+        return ResponseEntity.ok(ApiResponse.ok(response, traceId));
     }
 
     @GetMapping

@@ -129,7 +129,7 @@ class OrderServiceTest {
 
     assertEquals("INSUFFICIENT_WALLET_BALANCE", exception.getCode());
     assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
-    verify(pricingService, never()).registerClusterDiscount(any(), any());
+    verify(pricingService, never()).registerClusterDiscount(any(), any(), any(), any(), any());
   }
 
     @Test
@@ -160,7 +160,7 @@ class OrderServiceTest {
       .thenReturn(
         new PricingService.ClusterDiscountPreview(
           true, "cluster:zone:1:window:preview", 0L, false, BigDecimal.ZERO.setScale(2)));
-    when(pricingService.registerClusterDiscount(eq(1L), any()))
+    when(pricingService.registerClusterDiscount(eq(1L), any(), any(), any(), any()))
       .thenReturn(
         new PricingService.ClusterDiscountResult(
           true,
@@ -274,7 +274,7 @@ class OrderServiceTest {
           4L,
           true,
           new BigDecimal("10.00")));
-    when(pricingService.registerClusterDiscount(eq(1L), any()))
+    when(pricingService.registerClusterDiscount(eq(1L), any(), any(), any(), any()))
       .thenReturn(
         PricingService.ClusterDiscountResult.unavailable("cluster:zone:1:window:register"));
 
