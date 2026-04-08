@@ -58,10 +58,10 @@ class OrderServiceTest {
             null);
 
     when(jdbcTemplate.query(
-            argThat(sql -> sql.contains("FROM users u")), any(RowMapper.class), eq("student1")))
+          argThat(sqlContains("FROM users u")), any(RowMapper.class), eq("student1")))
         .thenReturn(List.of(userWallet));
     when(jdbcTemplate.query(
-            argThat(sql -> sql.contains("WHERE o.student_id = ? AND o.idempotency_key = ?")),
+          argThat(sqlContains("WHERE o.student_id = ? AND o.idempotency_key = ?")),
             any(RowMapper.class),
             eq(1L),
             eq("idem-1")))
@@ -75,7 +75,7 @@ class OrderServiceTest {
     assertEquals(77L, response.orderId());
     verify(jdbcTemplate, never())
         .query(
-            argThat(sql -> sql.contains("delivery_zones")), any(RowMapper.class), any());
+        argThat(sqlContains("delivery_zones")), any(RowMapper.class), any());
   }
 
   @Test
@@ -85,21 +85,21 @@ class OrderServiceTest {
         newProductRow(10L, "Item A", new BigDecimal("120.00"), new BigDecimal("100.00"), "IN_STOCK", true);
 
     when(jdbcTemplate.query(
-            argThat(sql -> sql.contains("FROM users u")), any(RowMapper.class), eq("student1")))
+        argThat(sqlContains("FROM users u")), any(RowMapper.class), eq("student1")))
         .thenReturn(List.of(userWallet));
     when(jdbcTemplate.query(
-            argThat(sql -> sql.contains("WHERE o.student_id = ? AND o.idempotency_key = ?")),
+        argThat(sqlContains("WHERE o.student_id = ? AND o.idempotency_key = ?")),
             any(RowMapper.class),
             eq(1L),
             eq("idem-2")))
         .thenReturn(List.of());
     when(jdbcTemplate.query(
-            argThat(sql -> sql.contains("SELECT is_active FROM delivery_zones")),
+        argThat(sqlContains("SELECT is_active FROM delivery_zones")),
             any(RowMapper.class),
             eq(1L)))
         .thenReturn(List.of(true));
     when(jdbcTemplate.query(
-            argThat(sql -> sql.contains("FROM products")), any(RowMapper.class), eq(10L)))
+        argThat(sqlContains("FROM products")), any(RowMapper.class), eq(10L)))
         .thenReturn(List.of(product));
 
     when(pricingService.calculatePlatformDiscount(any()))
@@ -110,11 +110,7 @@ class OrderServiceTest {
                 true, "cluster:zone:1:window:test", 0L, false, BigDecimal.ZERO.setScale(2)));
 
     when(jdbcTemplate.queryForObject(
-        argThat(
-          sql ->
-            sql != null
-              && sql.contains("UPDATE wallets")
-              && sql.contains("RETURNING current_balance")),
+        argThat(sqlContainsAll("UPDATE wallets", "RETURNING current_balance")),
             eq(BigDecimal.class),
             any(),
             any(),
@@ -162,5 +158,23 @@ class OrderServiceTest {
     } catch (Exception exception) {
       throw new RuntimeException(exception);
     }
+  }
+
+  private static java.util.function.Predicate<String> sqlContains(String fragment) {
+    return sql -> sql != null && sql.contains(fragment);
+  }
+
+  private static java.util.function.Predicate<String> sqlContainsAll(String... fragments) {
+    return sql -> {
+      if (sql == null) {
+        return false;
+      }
+      for (String fragment : fragments) {
+        if (!sql.contains(fragment)) {
+          return false;
+        }
+      }
+      return true;
+    };
   }
 }
