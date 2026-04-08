@@ -59,18 +59,17 @@ public class WalletService {
           HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    jdbcTemplate.update(
+    Long transactionId =
+      jdbcTemplate.queryForObject(
         """
         INSERT INTO wallet_transactions (wallet_id, transaction_type, payment_source, amount, reason)
         VALUES (?, 'CREDIT', 'WALLET_RECHARGE', ?, ?)
+        RETURNING id
         """,
+        Long.class,
         wallet.walletId(),
         request.amount(),
         safeRechargeReason(request.note()));
-
-    Long transactionId =
-        jdbcTemplate.queryForObject(
-            "SELECT currval(pg_get_serial_sequence('wallet_transactions','id'))", Long.class);
 
     if (transactionId == null) {
       throw new AppException(

@@ -6,8 +6,7 @@ const rolePaths: Record<string, string> = {
   ADMIN: "/admin",
 };
 
-const JWT_SECRET =
-  process.env.JWT_SECRET ?? "change-me-to-a-strong-32-byte-minimum-secret";
+const JWT_SECRET = process.env.JWT_SECRET?.trim() ?? "";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -45,6 +44,10 @@ export async function middleware(request: NextRequest) {
 }
 
 async function verifyJwt(token: string): Promise<Record<string, unknown> | null> {
+  if (!JWT_SECRET) {
+    return null;
+  }
+
   const parts = token.split(".");
   if (parts.length !== 3) {
     return null;

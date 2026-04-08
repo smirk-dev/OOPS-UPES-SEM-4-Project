@@ -170,89 +170,100 @@ public class OrderService {
         String clusterWindowKey = clusterPreview.eligibleIfPlacedNow() ? clusterPreview.windowKey() : null;
 
         PricingService.ClusterDiscountResult clusterResult = pricingService.registerClusterDiscount(request.zoneId(), finalSubtotal);
-        if (clusterResult.redisAvailable()) {
-            clusterDiscountApplied = clusterResult.eligible();
-            clusterWindowKey = clusterResult.eligible() ? clusterResult.windowKey() : null;
+        BigDecimal registeredClusterDiscount = clusterResult.redisAvailable()
+            ? clusterResult.discountAmount()
+            : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        boolean registeredClusterDiscountApplied = clusterResult.redisAvailable() && clusterResult.eligible();
+        String registeredClusterWindowKey = registeredClusterDiscountApplied ? clusterResult.windowKey() : null;
+        BigDecimal registeredTotalDiscount = platformDiscount.add(registeredClusterDiscount).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal registeredFinalPayable = finalSubtotal.subtract(registeredTotalDiscount).setScale(2, RoundingMode.HALF_UP);
 
-            BigDecimal registeredClusterDiscount = clusterResult.discountAmount();
-            BigDecimal registeredTotalDiscount = platformDiscount.add(registeredClusterDiscount).setScale(2, RoundingMode.HALF_UP);
-            BigDecimal registeredFinalPayable = finalSubtotal.subtract(registeredTotalDiscount).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal payableDelta = registeredFinalPayable.subtract(finalPayable).setScale(2, RoundingMode.HALF_UP);
+        if (payableDelta.signum() > 0) {
+            BigDecimal adjustedBalanceAfter =
+                jdbcTemplate.queryForObject(
+                    """
+                    UPDATE wallets
+                    SET current_balance = current_balance - ?, updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ? AND current_balance >= ?
+                    RETURNING current_balance
+                    """,
+                    BigDecimal.class,
+                    payableDelta,
+                    userWallet.walletId(),
+                    payableDelta);
 
-            BigDecimal payableDelta = registeredFinalPayable.subtract(finalPayable).setScale(2, RoundingMode.HALF_UP);
-            if (payableDelta.signum() > 0) {
-                BigDecimal adjustedBalanceAfter =
-                    jdbcTemplate.queryForObject(
-                        """
-                        UPDATE wallets
-                        SET current_balance = current_balance - ?, updated_at = CURRENT_TIMESTAMP
-                        WHERE id = ? AND current_balance >= ?
-                        RETURNING current_balance
-                        """,
-                        BigDecimal.class,
-                        payableDelta,
-                        userWallet.walletId(),
-                        payableDelta);
-
-                if (adjustedBalanceAfter == null) {
-                    throw new AppException("INSUFFICIENT_WALLET_BALANCE", "Wallet balance is insufficient.", HttpStatus.BAD_REQUEST);
-                }
-
-                walletBalanceAfter = adjustedBalanceAfter;
-            } else if (payableDelta.signum() < 0) {
-                BigDecimal refundAmount = payableDelta.abs();
-                BigDecimal adjustedBalanceAfter =
-                    jdbcTemplate.queryForObject(
-                        """
-                        UPDATE wallets
-                        SET current_balance = current_balance + ?, updated_at = CURRENT_TIMESTAMP
-                        WHERE id = ?
-                        RETURNING current_balance
-                        """,
-                        BigDecimal.class,
-                        refundAmount,
-                        userWallet.walletId());
-
-                if (adjustedBalanceAfter == null) {
-                    throw new AppException("ORDER_CREATE_FAILED", "Unable to update wallet balance.", HttpStatus.INTERNAL_SERVER_ERROR);
-                }
-
-                walletBalanceAfter = adjustedBalanceAfter;
+            if (adjustedBalanceAfter == null) {
+                throw new AppException("INSUFFICIENT_WALLET_BALANCE", "Wallet balance is insufficient.", HttpStatus.BAD_REQUEST);
             }
 
-            clusterDiscountAmount = registeredClusterDiscount;
-            totalDiscount = registeredTotalDiscount;
-            finalPayable = registeredFinalPayable;
-
+            walletBalanceAfter = adjustedBalanceAfter;
             jdbcTemplate.update(
                 """
-                UPDATE orders
-                SET cluster_discount_applied = ?,
-                    cluster_window_key = ?,
-                    cluster_discount_amount = ?,
-                    discount_amount = ?,
-                    final_payable = ?,
-                    wallet_balance_after_debit = ?
-                WHERE id = ?
+                INSERT INTO wallet_transactions (wallet_id, transaction_type, payment_source, amount, reason, order_id)
+                VALUES (?, 'DEBIT', 'ORDER_CHECKOUT_ADJUSTMENT', ?, ?, ?)
                 """,
-                clusterDiscountApplied,
-                clusterWindowKey,
-                clusterDiscountAmount,
-                totalDiscount,
-                finalPayable,
-                walletBalanceAfter,
+                userWallet.walletId(),
+                payableDelta,
+                "Order discount reconciliation debit",
                 orderId
             );
+        } else if (payableDelta.signum() < 0) {
+            BigDecimal refundAmount = payableDelta.abs();
+            BigDecimal adjustedBalanceAfter =
+                jdbcTemplate.queryForObject(
+                    """
+                    UPDATE wallets
+                    SET current_balance = current_balance + ?, updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                    RETURNING current_balance
+                    """,
+                    BigDecimal.class,
+                    refundAmount,
+                    userWallet.walletId());
 
+            if (adjustedBalanceAfter == null) {
+                throw new AppException("ORDER_CREATE_FAILED", "Unable to update wallet balance.", HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+
+            walletBalanceAfter = adjustedBalanceAfter;
             jdbcTemplate.update(
                 """
-                UPDATE wallet_transactions
-                SET amount = ?
-                WHERE order_id = ? AND transaction_type = 'DEBIT' AND payment_source = 'ORDER_CHECKOUT'
+                INSERT INTO wallet_transactions (wallet_id, transaction_type, payment_source, amount, reason, order_id)
+                VALUES (?, 'CREDIT', 'ORDER_CHECKOUT_ADJUSTMENT', ?, ?, ?)
                 """,
-                finalPayable,
+                userWallet.walletId(),
+                refundAmount,
+                "Order discount reconciliation refund",
                 orderId
             );
         }
+
+        clusterDiscountAmount = registeredClusterDiscount;
+        totalDiscount = registeredTotalDiscount;
+        finalPayable = registeredFinalPayable;
+        clusterDiscountApplied = registeredClusterDiscountApplied;
+        clusterWindowKey = registeredClusterWindowKey;
+
+        jdbcTemplate.update(
+            """
+            UPDATE orders
+            SET cluster_discount_applied = ?,
+                cluster_window_key = ?,
+                cluster_discount_amount = ?,
+                discount_amount = ?,
+                final_payable = ?,
+                wallet_balance_after_debit = ?
+            WHERE id = ?
+            """,
+            clusterDiscountApplied,
+            clusterWindowKey,
+            clusterDiscountAmount,
+            totalDiscount,
+            finalPayable,
+            walletBalanceAfter,
+            orderId
+        );
 
         log.info("order-created username={} orderId={} zoneId={} finalPayable={} totalDiscount={}", username, orderId, request.zoneId(), finalPayable, totalDiscount);
         auditService.record(username, "STUDENT", "ORDER_CREATED", "ORDER", orderId, "n/a", java.util.Map.of("zoneId", request.zoneId(), "subtotal", finalSubtotal, "totalDiscount", totalDiscount, "finalPayable", finalPayable));
