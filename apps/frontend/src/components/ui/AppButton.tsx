@@ -12,7 +12,7 @@ export function AppButton({ variant = "solid", className, ...props }: AppButtonP
         "rounded-md px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60",
         variant === "solid"
           ? "bg-primary text-white hover:brightness-110"
-          : "border border-[var(--card-border)] bg-white text-text hover:bg-slate-50",
+          : "border border-[var(--card-border)] bg-[var(--card)] text-[var(--text)] hover:bg-[var(--surface)]",
         className
       )}
       {...props}

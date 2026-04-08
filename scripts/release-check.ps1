@@ -8,9 +8,7 @@ $mavenCommand = if ($env:MAVEN_CMD -and $env:MAVEN_CMD.Trim().Length -gt 0) { $e
 Write-Host "[release-check] Frontend lint and build" -ForegroundColor Cyan
 Push-Location "apps/frontend"
 try {
-    if (-not (Test-Path "node_modules")) {
-        npm ci
-    }
+    npm ci
     npm run lint
     npm run build
 } finally {

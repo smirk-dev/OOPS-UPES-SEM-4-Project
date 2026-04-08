@@ -9,7 +9,11 @@ import com.upes.campusdelivery.pricing.service.PricingService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -31,11 +35,20 @@ public class CheckoutService {
         ZoneRow zone = getZoneOrThrow(request.zoneId());
         BigDecimal walletBalance = getWalletBalanceOrThrow(username);
 
+        Set<Long> productIds = new LinkedHashSet<>();
+        for (CheckoutItemRequest item : request.items()) {
+            productIds.add(item.productId());
+        }
+        Map<Long, ProductRow> productsById = getProductsOrThrow(productIds);
+
         List<CheckoutPrecheckItemView> itemViews = new ArrayList<>();
         BigDecimal subtotal = BigDecimal.ZERO;
 
         for (CheckoutItemRequest item : request.items()) {
-            ProductRow product = getProductOrThrow(item.productId());
+            ProductRow product = productsById.get(item.productId());
+            if (product == null) {
+                throw new AppException("PRODUCT_NOT_FOUND", "One or more products were not found.", HttpStatus.BAD_REQUEST);
+            }
             validateProductAvailability(product);
 
             BigDecimal lineTotal = product.currentPrice().multiply(BigDecimal.valueOf(item.quantity()));
@@ -112,13 +125,18 @@ public class CheckoutService {
         return balances.get(0).setScale(2, RoundingMode.HALF_UP);
     }
 
-    private ProductRow getProductOrThrow(Long productId) {
+    private Map<Long, ProductRow> getProductsOrThrow(Set<Long> productIds) {
+        if (productIds.isEmpty()) {
+            throw new AppException("PRODUCT_NOT_FOUND", "One or more products were not found.", HttpStatus.BAD_REQUEST);
+        }
+
+        String placeholders = String.join(",", java.util.Collections.nCopies(productIds.size(), "?"));
         List<ProductRow> rows = jdbcTemplate.query(
             """
             SELECT id, name, current_price, stock_status, is_active
             FROM products
-            WHERE id = ?
-            """,
+            WHERE id IN (%s)
+            """.formatted(placeholders),
             (rs, rowNum) ->
                 new ProductRow(
                     rs.getLong("id"),
@@ -127,14 +145,19 @@ public class CheckoutService {
                     rs.getString("stock_status"),
                     rs.getBoolean("is_active")
                 ),
-            productId
+            productIds.toArray()
         );
 
-        if (rows.isEmpty()) {
+        Map<Long, ProductRow> productsById = new HashMap<>();
+        for (ProductRow row : rows) {
+            productsById.put(row.id(), row);
+        }
+
+        if (productsById.size() != productIds.size()) {
             throw new AppException("PRODUCT_NOT_FOUND", "One or more products were not found.", HttpStatus.BAD_REQUEST);
         }
 
-        return rows.get(0);
+        return productsById;
     }
 
     private void validateProductAvailability(ProductRow product) {
