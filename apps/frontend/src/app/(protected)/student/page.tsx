@@ -32,7 +32,7 @@ export default function StudentPage() {
   const [vertical, setVertical] = useState("");
   const [category, setCategory] = useState("");
   const [stockStatus, setStockStatus] = useState("");
-  const [cartVersion, setCartVersion] = useState(0);
+  const [, setCartVersion] = useState(0);
 
   const token = authStorage.getToken();
 
