@@ -69,8 +69,10 @@ async function verifyJwt(token: string): Promise<Record<string, unknown> | null>
       ["verify"]
     );
 
-    const data = new TextEncoder().encode(`${encodedHeader}.${encodedPayload}`);
-    const signature = base64UrlDecode(encodedSignature);
+    const data = toArrayBuffer(
+      new TextEncoder().encode(`${encodedHeader}.${encodedPayload}`)
+    );
+    const signature = toArrayBuffer(base64UrlDecode(encodedSignature));
     const isValid = await crypto.subtle.verify("HMAC", key, signature, data);
     if (!isValid) {
       return null;
@@ -99,6 +101,13 @@ function base64UrlDecode(input: string): Uint8Array {
     bytes[i] = binary.charCodeAt(i);
   }
   return bytes;
+}
+
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  return bytes.buffer.slice(
+    bytes.byteOffset,
+    bytes.byteOffset + bytes.byteLength
+  ) as ArrayBuffer;
 }
 
 export const config = {
