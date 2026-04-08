@@ -38,7 +38,7 @@ public class WalletService {
   }
 
   @Transactional
-  public WalletRechargeResponse rechargeCurrentUserWallet(String username, WalletRechargeRequest request) {
+  public WalletRechargeResponse rechargeCurrentUserWallet(String username, WalletRechargeRequest request, String traceId) {
     WalletRow wallet = getWalletByUsernameOrThrow(username);
     BigDecimal updatedBalance =
         jdbcTemplate.queryForObject(
@@ -78,8 +78,8 @@ public class WalletService {
           HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    auditService.record(username, "STUDENT", "WALLET_RECHARGE", "WALLET", wallet.walletId(), "n/a", java.util.Map.of("amount", request.amount(), "updatedBalance", updatedBalance));
-    log.info("wallet-recharge username={} walletId={} amount={} updatedBalance={}", username, wallet.walletId(), request.amount(), updatedBalance);
+    auditService.record(username, "STUDENT", "WALLET_RECHARGE", "WALLET", wallet.walletId(), traceId, java.util.Map.of("amount", request.amount(), "updatedBalance", updatedBalance));
+    log.info("wallet-recharge username={} walletId={} amount={} updatedBalance={} traceId={}", username, wallet.walletId(), request.amount(), updatedBalance, traceId);
 
     return new WalletRechargeResponse(
         wallet.walletId(),

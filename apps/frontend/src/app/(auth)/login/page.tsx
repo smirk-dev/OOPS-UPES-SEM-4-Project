@@ -61,7 +61,7 @@ export default function LoginPage() {
               className={`rounded-md border px-3 py-2 text-sm font-medium transition ${
                 role === item
                   ? "border-primary bg-primary text-white"
-                  : "border-[var(--card-border)] bg-white text-text"
+                  : "border-[var(--card-border)] bg-[var(--card)] text-[var(--text)]"
               }`}
             >
               {item}

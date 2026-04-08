@@ -235,7 +235,7 @@ export default function AdminPage() {
               <LoadingState label="No users found for current filters." />
             ) : (
               users.map((user) => (
-                <div key={user.userId} className="rounded-lg border border-[var(--card-border)] bg-white p-3">
+                <div key={user.userId} className="rounded-lg border border-[var(--card-border)] bg-[var(--card)] p-3">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-2">
@@ -309,7 +309,7 @@ export default function AdminPage() {
               <LoadingState label="No audit events found yet." />
             ) : (
               audits.map((audit) => (
-                <div key={audit.auditId} className="rounded-lg border border-[var(--card-border)] bg-slate-50 p-3 text-xs">
+                <div key={audit.auditId} className="rounded-lg border border-[var(--card-border)] bg-[var(--surface)] p-3 text-xs">
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-semibold">{audit.action}</span>
                     <span className="text-muted">{formatTime(audit.createdAt)}</span>

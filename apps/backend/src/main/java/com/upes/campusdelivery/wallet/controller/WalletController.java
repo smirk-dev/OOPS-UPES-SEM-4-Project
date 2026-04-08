@@ -41,7 +41,8 @@ public class WalletController {
       @AuthenticationPrincipal String username,
       @Valid @RequestBody WalletRechargeRequest request,
       HttpServletRequest httpRequest) {
-    return ApiResponse.ok(walletService.rechargeCurrentUserWallet(username, request), traceId(httpRequest));
+    String traceId = traceId(httpRequest);
+    return ApiResponse.ok(walletService.rechargeCurrentUserWallet(username, request, traceId), traceId);
   }
 
   @GetMapping("/transactions")
