@@ -172,6 +172,7 @@ Use `apps/frontend/.env.example` as the reference.
 | Variable | Purpose | Example |
 | --- | --- | --- |
 | `NEXT_PUBLIC_API_BASE_URL` | Backend API base URL used by the browser | `http://localhost:8080/api/v1` |
+| `JWT_SECRET` | Secret used by Next.js middleware to validate `upes_session`; must match backend signing secret | strong 32+ byte secret |
 
 ## Local Setup
 

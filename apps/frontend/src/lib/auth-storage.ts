@@ -12,7 +12,7 @@ export const authStorage = {
   set(token: string, role: Role) {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(ROLE_KEY, role);
-    const cookieAttributes = getCookieAttributes(86400);
+    const cookieAttributes = getCookieAttributes(getSessionMaxAgeSeconds(token));
     document.cookie = `${SESSION_COOKIE}=${encodeURIComponent(token)}; ${cookieAttributes}`;
   },
 
@@ -30,7 +30,8 @@ export const authStorage = {
 
   exists(): boolean {
     if (typeof window === "undefined") return false;
-    return Boolean(readCookie(SESSION_COOKIE));
+    const token = readCookie(SESSION_COOKIE);
+    return token.length > 0 && !isJwtExpired(token);
   },
 
   getRole(): Role | "" {
@@ -49,4 +50,39 @@ function readCookie(name: string): string {
     }
   }
   return "";
+}
+
+function getSessionMaxAgeSeconds(token: string): number {
+  const exp = getJwtExp(token);
+  if (exp == null) {
+    return 86400;
+  }
+
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const ttl = exp - nowSeconds;
+  return ttl > 0 ? ttl : 0;
+}
+
+function isJwtExpired(token: string): boolean {
+  const exp = getJwtExp(token);
+  if (exp == null) {
+    return false;
+  }
+  return Math.floor(Date.now() / 1000) >= exp;
+}
+
+function getJwtExp(token: string): number | null {
+  const parts = token.split(".");
+  if (parts.length !== 3) {
+    return null;
+  }
+
+  try {
+    const payloadBase64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = payloadBase64.padEnd(Math.ceil(payloadBase64.length / 4) * 4, "=");
+    const payload = JSON.parse(atob(padded)) as { exp?: unknown };
+    return typeof payload.exp === "number" ? payload.exp : null;
+  } catch {
+    return null;
+  }
 }

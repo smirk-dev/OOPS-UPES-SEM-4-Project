@@ -6,4 +6,8 @@ Start-Process powershell -ArgumentList '-NoExit', '-Command', 'Set-Location apps
 
 Write-Host "Starting frontend at :3000..." -ForegroundColor Cyan
 Set-Location apps/frontend
+if (-not (Test-Path "node_modules")) {
+	Write-Host "Installing frontend dependencies (npm ci)..." -ForegroundColor Cyan
+	npm ci
+}
 npm run dev
