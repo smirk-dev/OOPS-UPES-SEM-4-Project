@@ -110,7 +110,11 @@ class OrderServiceTest {
                 true, "cluster:zone:1:window:test", 0L, false, BigDecimal.ZERO.setScale(2)));
 
     when(jdbcTemplate.queryForObject(
-            argThat(sql -> sql.contains("UPDATE wallets") && sql.contains("RETURNING current_balance")),
+        argThat(
+          sql ->
+            sql != null
+              && sql.contains("UPDATE wallets")
+              && sql.contains("RETURNING current_balance")),
             eq(BigDecimal.class),
             any(),
             any(),
