@@ -87,6 +87,7 @@ public class OrderService {
         final BigDecimal initialClusterDiscountAmount = clusterDiscountAmount;
         final BigDecimal initialTotalDiscount = totalDiscount;
         final BigDecimal initialFinalPayable = finalPayable;
+        final BigDecimal initialWalletBalanceAfter = walletBalanceAfter;
         final boolean initialClusterDiscountApplied = clusterPreview.eligibleIfPlacedNow();
         final String initialClusterWindowKey = clusterPreview.eligibleIfPlacedNow() ? clusterPreview.windowKey() : null;
 
@@ -123,7 +124,7 @@ public class OrderService {
             preparedStatement.setBigDecimal(5, platformDiscount);
             preparedStatement.setBigDecimal(6, initialClusterDiscountAmount);
             preparedStatement.setBigDecimal(7, initialFinalPayable);
-            preparedStatement.setBigDecimal(8, walletBalanceAfter);
+            preparedStatement.setBigDecimal(8, initialWalletBalanceAfter);
             preparedStatement.setBoolean(9, initialClusterDiscountApplied);
             preparedStatement.setString(10, initialClusterWindowKey);
             preparedStatement.setString(11, normalizedKey);
