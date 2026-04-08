@@ -87,7 +87,6 @@ public class OrderService {
         final BigDecimal initialClusterDiscountAmount = clusterDiscountAmount;
         final BigDecimal initialTotalDiscount = totalDiscount;
         final BigDecimal initialFinalPayable = finalPayable;
-        final BigDecimal initialWalletBalanceAfter = walletBalanceAfter;
         final boolean initialClusterDiscountApplied = clusterPreview.eligibleIfPlacedNow();
         final String initialClusterWindowKey = clusterPreview.eligibleIfPlacedNow() ? clusterPreview.windowKey() : null;
 
@@ -107,6 +106,7 @@ public class OrderService {
         if (walletBalanceAfter == null) {
             throw new AppException("INSUFFICIENT_WALLET_BALANCE", "Wallet balance is insufficient.", HttpStatus.BAD_REQUEST);
         }
+        final BigDecimal initialWalletBalanceAfter = walletBalanceAfter;
 
         KeyHolder orderKeyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(connection -> {
