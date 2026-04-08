@@ -42,7 +42,7 @@ This document freezes the MVP API contract for viva and demo.
 - PATCH /admin/products/{productId}/active?active=&reason=
 
 ## Response Envelope
-All endpoints use this envelope:
+All endpoints except `/health` use this envelope:
 
 {
   "success": true,

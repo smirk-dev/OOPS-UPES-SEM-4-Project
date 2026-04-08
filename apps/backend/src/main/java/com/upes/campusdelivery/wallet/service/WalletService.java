@@ -40,12 +40,24 @@ public class WalletService {
   @Transactional
   public WalletRechargeResponse rechargeCurrentUserWallet(String username, WalletRechargeRequest request) {
     WalletRow wallet = getWalletByUsernameOrThrow(username);
-    BigDecimal updatedBalance = wallet.currentBalance().add(request.amount());
+    BigDecimal updatedBalance =
+        jdbcTemplate.queryForObject(
+            """
+            UPDATE wallets
+            SET current_balance = current_balance + ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+            RETURNING current_balance
+            """,
+            BigDecimal.class,
+            request.amount(),
+            wallet.walletId());
 
-    jdbcTemplate.update(
-        "UPDATE wallets SET current_balance = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-        updatedBalance,
-        wallet.walletId());
+    if (updatedBalance == null) {
+      throw new AppException(
+          "WALLET_RECHARGE_FAILED",
+          "Wallet recharge failed while updating balance.",
+          HttpStatus.INTERNAL_SERVER_ERROR);
+    }
 
     jdbcTemplate.update(
         """
@@ -74,7 +86,7 @@ public class WalletService {
         wallet.walletId(),
         transactionId,
         request.amount(),
-        updatedBalance);
+      updatedBalance);
   }
 
   @Transactional(readOnly = true)

@@ -8,15 +8,15 @@ const rolePaths: Record<string, string> = {
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const token = request.cookies.get("upes_token")?.value;
+  const session = request.cookies.get("upes_session")?.value;
   const role = request.cookies.get("upes_role")?.value ?? "";
 
   const isProtected = pathname.startsWith("/dashboard") || pathname.startsWith("/student") || pathname.startsWith("/vendor") || pathname.startsWith("/admin");
-  if (isProtected && !token) {
+  if (isProtected && !session) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (pathname === "/login" && token) {
+  if (pathname === "/login" && session) {
     return NextResponse.redirect(new URL(rolePaths[role] ?? "/dashboard", request.url));
   }
 

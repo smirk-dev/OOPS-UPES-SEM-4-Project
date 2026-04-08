@@ -47,14 +47,14 @@ public class OrderService {
         String normalizedKey = normalizeIdempotencyKey(idempotencyKey);
         UserWalletRow userWallet = getUserWalletOrThrow(username);
 
-        validateZoneOrThrow(request.zoneId());
-
         CreateOrderResponse replay = findReplayOrder(userWallet.userId(), normalizedKey);
         if (replay != null) {
             log.info("order-replay username={} idempotencyKey={} orderId={}", username, normalizedKey, replay.orderId());
             auditService.record(username, "STUDENT", "ORDER_REPLAY", "ORDER", replay.orderId(), "n/a", java.util.Map.of("idempotencyKey", normalizedKey));
             return replay;
         }
+
+        validateZoneOrThrow(request.zoneId());
 
         List<OrderItemSnapshot> snapshots = new ArrayList<>();
         BigDecimal subtotal = BigDecimal.ZERO;
@@ -80,16 +80,27 @@ public class OrderService {
 
         BigDecimal finalSubtotal = subtotal.setScale(2, RoundingMode.HALF_UP);
         BigDecimal platformDiscount = pricingService.calculatePlatformDiscount(finalSubtotal);
-        PricingService.ClusterDiscountResult clusterDiscount = pricingService.registerClusterDiscount(request.zoneId(), finalSubtotal);
-        BigDecimal clusterDiscountAmount = clusterDiscount.discountAmount();
+        PricingService.ClusterDiscountPreview clusterPreview = pricingService.previewClusterDiscount(request.zoneId(), finalSubtotal);
+        BigDecimal clusterDiscountAmount = clusterPreview.discountAmount();
         BigDecimal totalDiscount = platformDiscount.add(clusterDiscountAmount).setScale(2, RoundingMode.HALF_UP);
         BigDecimal finalPayable = finalSubtotal.subtract(totalDiscount).setScale(2, RoundingMode.HALF_UP);
 
-        if (userWallet.currentBalance().compareTo(finalPayable) < 0) {
+        BigDecimal walletBalanceAfter =
+            jdbcTemplate.queryForObject(
+                """
+                UPDATE wallets
+                SET current_balance = current_balance - ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ? AND current_balance >= ?
+                RETURNING current_balance
+                """,
+                BigDecimal.class,
+                finalPayable,
+                userWallet.walletId(),
+                finalPayable);
+
+        if (walletBalanceAfter == null) {
             throw new AppException("INSUFFICIENT_WALLET_BALANCE", "Wallet balance is insufficient.", HttpStatus.BAD_REQUEST);
         }
-
-        BigDecimal walletBalanceAfter = userWallet.currentBalance().subtract(finalPayable).setScale(2, RoundingMode.HALF_UP);
 
         KeyHolder orderKeyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(connection -> {
@@ -108,8 +119,8 @@ public class OrderService {
             preparedStatement.setBigDecimal(6, clusterDiscountAmount);
             preparedStatement.setBigDecimal(7, finalPayable);
             preparedStatement.setBigDecimal(8, walletBalanceAfter);
-            preparedStatement.setBoolean(9, clusterDiscount.eligible());
-            preparedStatement.setString(10, clusterDiscount.eligible() ? clusterDiscount.windowKey() : null);
+            preparedStatement.setBoolean(9, clusterPreview.eligibleIfPlacedNow());
+            preparedStatement.setString(10, clusterPreview.eligibleIfPlacedNow() ? clusterPreview.windowKey() : null);
             preparedStatement.setString(11, normalizedKey);
             return preparedStatement;
         }, orderKeyHolder);
@@ -138,12 +149,6 @@ public class OrderService {
         }
 
         jdbcTemplate.update(
-            "UPDATE wallets SET current_balance = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-            walletBalanceAfter,
-            userWallet.walletId()
-        );
-
-        jdbcTemplate.update(
             """
             INSERT INTO wallet_transactions (wallet_id, transaction_type, payment_source, amount, reason, order_id)
             VALUES (?, 'DEBIT', 'ORDER_CHECKOUT', ?, ?, ?)
@@ -155,6 +160,7 @@ public class OrderService {
         );
 
         Instant createdAt = createdAtTs == null ? Instant.now() : createdAtTs.toInstant();
+        pricingService.registerClusterDiscount(request.zoneId(), finalSubtotal);
         log.info("order-created username={} orderId={} zoneId={} finalPayable={} totalDiscount={}", username, orderId, request.zoneId(), finalPayable, totalDiscount);
         auditService.record(username, "STUDENT", "ORDER_CREATED", "ORDER", orderId, "n/a", java.util.Map.of("zoneId", request.zoneId(), "subtotal", finalSubtotal, "totalDiscount", totalDiscount, "finalPayable", finalPayable));
         return new CreateOrderResponse(
@@ -167,8 +173,8 @@ public class OrderService {
             walletBalanceAfter,
             createdAt,
             false,
-            clusterDiscount.eligible(),
-            clusterDiscount.eligible() ? clusterDiscount.windowKey() : null
+            clusterPreview.eligibleIfPlacedNow(),
+            clusterPreview.eligibleIfPlacedNow() ? clusterPreview.windowKey() : null
         );
     }
 

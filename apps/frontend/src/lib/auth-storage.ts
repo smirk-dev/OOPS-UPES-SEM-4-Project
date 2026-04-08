@@ -1,7 +1,8 @@
 import { Role } from "@/lib/enums";
 
+const TOKEN_KEY = "upes_token";
 const ROLE_KEY = "upes_role";
-const TOKEN_COOKIE = "upes_token";
+const SESSION_COOKIE = "upes_session";
 const ROLE_COOKIE = "upes_role";
 
 function getCookieAttributes(maxAgeSeconds: number) {
@@ -25,26 +26,30 @@ function readCookie(name: string): string | null {
 export const authStorage = {
   set(token: string, role: Role) {
     if (typeof window === "undefined") return;
+    window.localStorage.setItem(TOKEN_KEY, token);
     window.localStorage.setItem(ROLE_KEY, role);
     const cookieAttributes = getCookieAttributes(86400);
-    document.cookie = `${TOKEN_COOKIE}=${encodeURIComponent(token)}; ${cookieAttributes}`;
+    document.cookie = `${SESSION_COOKIE}=1; ${cookieAttributes}`;
     document.cookie = `${ROLE_COOKIE}=${encodeURIComponent(role)}; ${cookieAttributes}`;
   },
 
   getToken(): string {
-    return readCookie(TOKEN_COOKIE) ?? "";
+    if (typeof window === "undefined") return "";
+    return window.localStorage.getItem(TOKEN_KEY) ?? "";
   },
 
   clear() {
     if (typeof window === "undefined") return;
+    window.localStorage.removeItem(TOKEN_KEY);
     window.localStorage.removeItem(ROLE_KEY);
     const clearAttributes = getCookieAttributes(0);
-    document.cookie = `${TOKEN_COOKIE}=; ${clearAttributes}`;
+    document.cookie = `${SESSION_COOKIE}=; ${clearAttributes}`;
     document.cookie = `${ROLE_COOKIE}=; ${clearAttributes}`;
   },
 
   exists(): boolean {
-    return Boolean(readCookie(TOKEN_COOKIE));
+    if (typeof window === "undefined") return false;
+    return Boolean(window.localStorage.getItem(TOKEN_KEY));
   },
 
   getRole(): Role | "" {

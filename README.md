@@ -335,7 +335,7 @@ The backend seed data includes local demo accounts:
 
 ### Release Check Script Fails On Maven Path
 
-The release check script uses a fixed Maven path in the current repository setup. If that path does not exist on your machine, update the path in `scripts/release-check.ps1` or run the Maven commands manually from the command line.
+The release check script does not rely on a fixed Maven path. It uses `MAVEN_CMD` when that environment variable is set, and otherwise runs `mvn`. If Maven is not found, set `MAVEN_CMD` to your Maven executable or ensure `mvn` is available on your `PATH`.
 
 ## Notes
 
