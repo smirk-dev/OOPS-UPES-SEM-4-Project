@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --surface: #f8fbff;
+  --text: #08203a;
+  --muted: #4a5f77;
+  --primary: #0057b8;
+  --accent: #008a5c;
+  --success: #0c9b51;
+  --warn: #db6a00;
+  --card: #ffffff;
+  --card-border: #d4e2f3;
+}
+
+.exam-mode {
+  --surface: #0f1720;
+  --text: #ecf6ff;
+  --muted: #a7bbce;
+  --primary: #2d7fe0;
+  --accent: #d6d80f;
+  --success: #21b56c;
+  --warn: #ffb347;
+  --card: #152233;
+  --card-border: #30465d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: radial-gradient(circle at 10% 20%, #eaf2ff 0%, transparent 40%),
+              radial-gradient(circle at 90% 10%, #e7fff5 0%, transparent 35%),
+              var(--surface);
+  color: var(--text);
+  min-height: 100%;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
