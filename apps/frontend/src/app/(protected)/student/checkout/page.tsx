@@ -225,7 +225,10 @@ export default function CheckoutPage() {
           ) : null}
           {syncLoading ? <LoadingState label="Syncing wallet and checkout precheck..." /> : null}
           <div className="mt-3 space-y-2">
-            <PriceRow label="Items" amount={summary.itemCount} muted />
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted">Items</span>
+              <span className="font-semibold">{summary.itemCount}</span>
+            </div>
             <PriceRow label="Subtotal" amount={precheck?.subtotal ?? summary.subtotal} />
             <PriceRow label="Savings" amount={summary.savings} />
             <PriceRow label="Platform Discount" amount={precheck?.platformDiscount ?? 0} />

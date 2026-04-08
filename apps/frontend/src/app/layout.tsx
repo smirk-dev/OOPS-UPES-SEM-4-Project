@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import "./globals.css";
 import { AppHeader } from "@/components/ui/AppHeader";
 
@@ -7,7 +8,7 @@ export const metadata: Metadata = {
   description: "Campus-first grocery and food ordering platform",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body className="min-h-screen">

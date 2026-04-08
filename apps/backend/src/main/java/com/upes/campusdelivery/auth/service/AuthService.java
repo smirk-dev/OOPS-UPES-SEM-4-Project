@@ -9,6 +9,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -17,32 +18,29 @@ public class AuthService {
 
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
-    private record DemoUser(Long id, String username, String encodedPassword, Role role) {}
+    private record AuthUser(Long id, String username, String encodedPassword, Role role, boolean active) {}
 
-    private final List<DemoUser> demoUsers;
+    private final JdbcTemplate jdbcTemplate;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
-    public AuthService(PasswordEncoder passwordEncoder, JwtService jwtService) {
+    public AuthService(JdbcTemplate jdbcTemplate, PasswordEncoder passwordEncoder, JwtService jwtService) {
+        this.jdbcTemplate = jdbcTemplate;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
-
-        this.demoUsers = List.of(
-            new DemoUser(1L, "student1", passwordEncoder.encode("Student@123"), Role.STUDENT),
-            new DemoUser(2L, "vendor1", passwordEncoder.encode("Vendor@123"), Role.VENDOR),
-            new DemoUser(3L, "admin1", passwordEncoder.encode("Admin@123"), Role.ADMIN)
-        );
     }
 
     public LoginResponse login(LoginRequest request) {
-        DemoUser user = demoUsers.stream()
-            .filter(item -> item.username().equals(request.username()))
-            .findFirst()
-            .orElseThrow(() -> new AppException(
-                "INVALID_CREDENTIALS",
-                "Invalid username or password.",
-                HttpStatus.UNAUTHORIZED
-            ));
+        AuthUser user = findUserByUsername(request.username());
+
+        if (user == null) {
+            throw new AppException("INVALID_CREDENTIALS", "Invalid username or password.", HttpStatus.UNAUTHORIZED);
+        }
+
+        if (!user.active()) {
+            log.warn("login-failed username={} reason=inactive-user", request.username());
+            throw new AppException("USER_INACTIVE", "This account is inactive. Please contact admin.", HttpStatus.FORBIDDEN);
+        }
 
         if (!passwordEncoder.matches(request.password(), user.encodedPassword())) {
             log.warn("login-failed username={} reason=bad-password", request.username());
@@ -62,5 +60,25 @@ public class AuthService {
         log.info("login-success username={} role={}", user.username(), user.role());
 
         return new LoginResponse(user.id(), user.username(), user.role(), token, jwtService.getExpirationSeconds());
+    }
+
+    private AuthUser findUserByUsername(String username) {
+        List<AuthUser> users = jdbcTemplate.query(
+            """
+            SELECT id, username, password_hash, role, is_active
+            FROM users
+            WHERE username = ?
+            """,
+            (rs, rowNum) -> new AuthUser(
+                rs.getLong("id"),
+                rs.getString("username"),
+                rs.getString("password_hash"),
+                Role.valueOf(rs.getString("role")),
+                rs.getBoolean("is_active")
+            ),
+            username
+        );
+
+        return users.isEmpty() ? null : users.get(0);
     }
 }

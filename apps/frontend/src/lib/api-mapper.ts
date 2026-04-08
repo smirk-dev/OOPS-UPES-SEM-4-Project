@@ -1,11 +1,11 @@
 export type ApiEnvelope<T> = {
   success: boolean;
   data: T;
-  error?: {
+  error: {
     code: string;
     message: string;
     details?: string[];
-  };
+  } | null;
   traceId: string;
   timestamp: string;
 };

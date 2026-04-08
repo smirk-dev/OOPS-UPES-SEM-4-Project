@@ -21,10 +21,15 @@ export function AppHeader() {
     };
 
     const interval = window.setInterval(sync, 60_000);
+    const onStorage = () => sync();
+    window.addEventListener("storage", onStorage);
     sync();
 
-    return () => window.clearInterval(interval);
-  }, []);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, [pathname]);
 
   const onLogout = () => {
     authStorage.clear();
@@ -34,7 +39,7 @@ export function AppHeader() {
 
   const navigation = [
     { href: "/dashboard", label: "Dashboard", show: true },
-    { href: "/student", label: "Student", show: role === Role.STUDENT || role === Role.ADMIN || role === "" },
+    { href: "/student", label: "Student", show: role === Role.STUDENT || role === "" },
     { href: "/vendor", label: "Vendor", show: role === Role.VENDOR || role === Role.ADMIN },
     { href: "/admin", label: "Admin", show: role === Role.ADMIN },
   ];

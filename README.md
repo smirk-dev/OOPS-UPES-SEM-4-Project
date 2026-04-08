@@ -132,7 +132,7 @@ The product keeps pricing explicit so the user can see exactly where the final n
 ## Tech Stack
 
 - Frontend: Next.js 14, React 18, TypeScript, Tailwind CSS, Lucide icons.
-- Backend: Java 17, Spring Boot 3.3, Spring Security, Spring Data JPA, Flyway.
+- Backend: Java 21, Spring Boot 3.3, Spring Security, Spring Data JPA, Flyway.
 - Database: PostgreSQL.
 - Cache: Redis.
 - Tooling: Maven, npm, Docker, GitHub Actions.
@@ -325,7 +325,7 @@ The backend seed data includes local demo accounts:
 
 - Confirm the backend environment variables match `apps/backend/.env.example`.
 - Confirm PostgreSQL and Redis are reachable.
-- Confirm you are using Java 17 or a compatible JDK.
+- Confirm you are using Java 21 or a compatible JDK.
 
 ### Frontend Build Or Lint Fails
 

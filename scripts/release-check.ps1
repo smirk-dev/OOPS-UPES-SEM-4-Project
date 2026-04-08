@@ -1,8 +1,9 @@
 $ErrorActionPreference = "Stop"
 
 Write-Host "[release-check] Backend tests and package" -ForegroundColor Cyan
-& "C:\tools\apache-maven-3.9.9\bin\mvn.cmd" -q -f "apps/backend/pom.xml" test
-& "C:\tools\apache-maven-3.9.9\bin\mvn.cmd" -q -f "apps/backend/pom.xml" package -DskipTests
+$mavenCommand = if ($env:MAVEN_CMD -and $env:MAVEN_CMD.Trim().Length -gt 0) { $env:MAVEN_CMD.Trim() } else { "mvn" }
+& $mavenCommand -q -f "apps/backend/pom.xml" test
+& $mavenCommand -q -f "apps/backend/pom.xml" package -DskipTests
 
 Write-Host "[release-check] Frontend lint and build" -ForegroundColor Cyan
 Push-Location "apps/frontend"
