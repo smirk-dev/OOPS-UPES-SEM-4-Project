@@ -1,0 +1,26 @@
+# Node
+node_modules/
+.next/
+out/
+
+# Java
+**/target/
+*.class
+
+# IDE and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# Build
+coverage/
+.github/skills/debugging-agent/SKILL.md
