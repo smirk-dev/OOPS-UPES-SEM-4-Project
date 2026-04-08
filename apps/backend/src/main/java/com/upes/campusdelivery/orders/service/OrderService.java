@@ -95,8 +95,8 @@ public class OrderService {
         jdbcTemplate.update(connection -> {
             var preparedStatement = connection.prepareStatement(
                 """
-                INSERT INTO orders (student_id, zone_id, status, subtotal_amount, discount_amount, platform_discount_amount, cluster_discount_amount, final_payable, cluster_discount_applied, cluster_window_key, idempotency_key)
-                VALUES (?, ?, 'PLACED', ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO orders (student_id, zone_id, status, subtotal_amount, discount_amount, platform_discount_amount, cluster_discount_amount, final_payable, wallet_balance_after_debit, cluster_discount_applied, cluster_window_key, idempotency_key)
+                VALUES (?, ?, 'PLACED', ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 new String[] {"id", "created_at"}
             );
@@ -107,9 +107,10 @@ public class OrderService {
             preparedStatement.setBigDecimal(5, platformDiscount);
             preparedStatement.setBigDecimal(6, clusterDiscountAmount);
             preparedStatement.setBigDecimal(7, finalPayable);
-            preparedStatement.setBoolean(8, clusterDiscount.eligible());
-            preparedStatement.setString(9, clusterDiscount.eligible() ? clusterDiscount.windowKey() : null);
-            preparedStatement.setString(10, normalizedKey);
+            preparedStatement.setBigDecimal(8, walletBalanceAfter);
+            preparedStatement.setBoolean(9, clusterDiscount.eligible());
+            preparedStatement.setString(10, clusterDiscount.eligible() ? clusterDiscount.windowKey() : null);
+            preparedStatement.setString(11, normalizedKey);
             return preparedStatement;
         }, orderKeyHolder);
 
@@ -238,13 +239,12 @@ public class OrderService {
                    o.cluster_discount_amount,
                    o.discount_amount,
                    o.final_payable,
+                     o.wallet_balance_after_debit,
                    o.created_at,
-                   COALESCE(w.current_balance, 0) AS current_balance,
                    o.cluster_discount_applied,
                    o.cluster_window_key
             FROM orders o
             INNER JOIN delivery_zones dz ON dz.id = o.zone_id
-            LEFT JOIN wallets w ON w.user_id = o.student_id
             WHERE o.id = ? AND o.student_id = ?
             """,
             (rs, rowNum) -> new OrderDetailRow(
@@ -256,8 +256,8 @@ public class OrderService {
                 rs.getBigDecimal("cluster_discount_amount"),
                 rs.getBigDecimal("discount_amount"),
                 rs.getBigDecimal("final_payable"),
+                rs.getBigDecimal("wallet_balance_after_debit"),
                 rs.getTimestamp("created_at").toInstant(),
-                rs.getBigDecimal("current_balance"),
                 rs.getBoolean("cluster_discount_applied"),
                 rs.getString("cluster_window_key")
             ),
@@ -314,12 +314,11 @@ public class OrderService {
                    o.cluster_discount_amount,
                    o.discount_amount,
                    o.final_payable,
+                     o.wallet_balance_after_debit,
                    o.created_at,
-                   w.current_balance,
                    o.cluster_discount_applied,
                    o.cluster_window_key
             FROM orders o
-            INNER JOIN wallets w ON w.user_id = o.student_id
             WHERE o.student_id = ? AND o.idempotency_key = ?
             """,
             (rs, rowNum) -> toReplayResponse(rs),
@@ -342,7 +341,7 @@ public class OrderService {
             rs.getBigDecimal("cluster_discount_amount"),
             rs.getBigDecimal("discount_amount"),
             rs.getBigDecimal("final_payable"),
-            rs.getBigDecimal("current_balance"),
+            rs.getBigDecimal("wallet_balance_after_debit"),
             rs.getTimestamp("created_at").toInstant(),
             true,
             rs.getBoolean("cluster_discount_applied"),
@@ -457,8 +456,8 @@ public class OrderService {
         BigDecimal clusterDiscountAmount,
         BigDecimal discountAmount,
         BigDecimal finalPayable,
-        Instant createdAt,
         BigDecimal walletBalanceAfterDebit,
+        Instant createdAt,
         boolean clusterDiscountApplied,
         String clusterWindowKey
     ) {}

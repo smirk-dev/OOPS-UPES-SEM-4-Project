@@ -13,7 +13,6 @@ import { SectionHeader } from "@/components/ui/SectionHeader";
 import {
   checkoutPrecheck,
   createOrder,
-  getWalletBalance,
   type CheckoutPrecheckResponse,
 } from "@/lib/api-client";
 import { authStorage } from "@/lib/auth-storage";
@@ -78,8 +77,6 @@ export default function CheckoutPage() {
       setApiError("");
 
       try {
-        await getWalletBalance(token);
-
         const response = await checkoutPrecheck(token, {
           zoneId,
           items: items.map((item) => ({
