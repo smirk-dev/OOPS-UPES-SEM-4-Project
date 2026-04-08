@@ -1,0 +1,9 @@
+{
+  "role": ["STUDENT", "VENDOR", "ADMIN"],
+  "vertical": ["GROCERY", "RESTAURANT"],
+  "stockStatus": ["IN_STOCK", "LOW_STOCK", "UNAVAILABLE"],
+  "orderStatus": ["PLACED", "CONFIRMED", "PREPARING", "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED"],
+  "walletTransactionType": ["CREDIT", "DEBIT"],
+  "paymentSource": ["WALLET_RECHARGE", "ORDER_CHECKOUT", "ORDER_CHECKOUT_ADJUSTMENT", "ADMIN_ADJUSTMENT"],
+  "discountType": ["FLASH", "CLUSTER"]
+}
