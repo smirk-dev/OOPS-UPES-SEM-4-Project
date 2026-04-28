@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Role } from "@/lib/enums";
 import { login } from "@/lib/api-client";
 import { authStorage } from "@/lib/auth-storage";
@@ -88,6 +89,10 @@ export default function LoginPage() {
             {loading ? "Signing in..." : `Login as ${role}`}
           </AppButton>
         </form>
+
+        <p className="mt-4 text-center text-sm text-muted">
+          Need an account? <Link href="/signup" className="text-primary underline">Create one here</Link>.
+        </p>
       </AppCard>
     </main>
   );
