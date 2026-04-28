@@ -178,10 +178,16 @@ Use `apps/frontend/.env.example` as the reference.
 
 ### Fastest Start
 
-Use the helper script if you want the shortest path to a working local environment:
+Use either helper script if you want the shortest path to a working local environment:
 
 ```powershell
-./scripts/dev.ps1
+./start-project.ps1
+```
+
+or
+
+```bat
+start-project.bat
 ```
 
 This script starts PostgreSQL and Redis with Docker, opens the backend on port 8080, and starts the frontend on port 3000.
