@@ -78,13 +78,15 @@ else {
 	Write-Host "Maven is not available for local backend run." -ForegroundColor Yellow
 	Write-Host "Falling back to full containerized app startup (backend + frontend + infra)..." -ForegroundColor Cyan
 	# If local Postgres/Redis are already reachable on the host, avoid starting them inside compose
-	$postgresReachable = Test-TcpPort -TargetHost '127.0.0.1' -Port 5432
-	$redisReachable = Test-TcpPort -TargetHost '127.0.0.1' -Port 6379
 	if ($postgresReachable -and $redisReachable) {
 		Write-Host "Local Postgres/Redis detected. Building and starting backend + frontend only (no-deps)." -ForegroundColor Cyan
-		# Build images then start services without their dependencies to avoid binding host ports twice
-		docker compose -f docker-compose.app.yml build backend frontend
-		docker compose -f docker-compose.app.yml up --no-deps --remove-orphans backend frontend
+		# Point the backend container at host-local services while skipping bundled db/redis containers.
+		$env:DB_URL = 'jdbc:postgresql://host.docker.internal:5432/campus_delivery'
+		$env:DB_USERNAME = 'postgres'
+		$env:DB_PASSWORD = 'postgres'
+		$env:REDIS_HOST = 'host.docker.internal'
+		$env:REDIS_PORT = '6379'
+		docker compose -f docker-compose.app.yml up --build --no-deps --remove-orphans backend frontend
 		return
 	}
 	else {
