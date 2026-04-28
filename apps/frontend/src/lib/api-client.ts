@@ -1,5 +1,5 @@
 import { unwrapResponse, type ApiEnvelope } from "@/lib/api-mapper";
-import { Role } from "@/lib/enums";
+import { Role, Vertical } from "@/lib/enums";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api/v1";
 
@@ -15,6 +15,17 @@ type LoginResponse = {
   role: Role;
   token: string;
   expiresInSeconds: number;
+};
+
+export type SignupRequest = {
+  fullName: string;
+  username: string;
+  email?: string;
+  phone?: string;
+  password: string;
+  role: Role;
+  shopName?: string;
+  vertical?: Vertical;
 };
 
 export type CatalogProduct = {
@@ -259,6 +270,24 @@ export async function login(request: LoginRequest): Promise<LoginResponse> {
   const payload = (await response.json()) as ApiEnvelope<LoginResponse>;
   if (!response.ok) {
     throw new Error(payload.error?.message ?? "Login failed");
+  }
+
+  return unwrapResponse(payload);
+}
+
+export async function signup(request: SignupRequest): Promise<LoginResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/signup`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Request-Id": crypto.randomUUID(),
+    },
+    body: JSON.stringify(request),
+  });
+
+  const payload = (await response.json()) as ApiEnvelope<LoginResponse>;
+  if (!response.ok) {
+    throw new Error(payload.error?.message ?? "Signup failed");
   }
 
   return unwrapResponse(payload);
