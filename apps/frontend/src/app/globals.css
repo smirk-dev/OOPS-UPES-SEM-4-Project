@@ -3,42 +3,68 @@
 @tailwind utilities;
 
 :root {
-  --surface: #f8fbff;
-  --text: #08203a;
-  --muted: #4a5f77;
-  --primary: #0057b8;
-  --accent: #008a5c;
-  --success: #0c9b51;
-  --warn: #db6a00;
-  --card: #ffffff;
-  --card-border: #d4e2f3;
+  --surface: #b897f7;
+  --surface-alt: #f6e6bf;
+  --surface-alt-2: #fde4f6;
+  --text: #111111;
+  --muted: #403b39;
+  --primary: #111111;
+  --accent: #ff7f50;
+  --success: #1f9d55;
+  --warn: #f59e0b;
+  --card: #fff8ee;
+  --card-border: #111111;
+  --outline: #111111;
+  --paper: rgba(255, 248, 238, 0.8);
 }
 
 .exam-mode {
-  --surface: #0f1720;
-  --text: #ecf6ff;
-  --muted: #a7bbce;
-  --primary: #2d7fe0;
-  --accent: #d6d80f;
-  --success: #21b56c;
-  --warn: #ffb347;
-  --card: #152233;
-  --card-border: #30465d;
+  --surface: #17172d;
+  --surface-alt: #23214a;
+  --surface-alt-2: #3a2a5e;
+  --text: #f8f3e9;
+  --muted: #d6cbd8;
+  --primary: #f8f3e9;
+  --accent: #f9db5c;
+  --success: #75e08f;
+  --warn: #ffbc63;
+  --card: #221f3d;
+  --card-border: #f8f3e9;
+  --outline: #f8f3e9;
+  --paper: rgba(34, 31, 61, 0.92);
 }
 
 * {
   box-sizing: border-box;
 }
 
+::selection {
+  background: var(--accent);
+  color: #111111;
+}
+
 html,
 body {
   margin: 0;
   padding: 0;
-  background: radial-gradient(circle at 10% 20%, #eaf2ff 0%, transparent 40%),
-              radial-gradient(circle at 90% 10%, #e7fff5 0%, transparent 35%),
-              var(--surface);
-  color: var(--text);
   min-height: 100%;
+  color: var(--text);
+  font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--surface);
+}
+
+body {
+  position: relative;
+}
+
+body::before {
+  /* subtle overlay to slightly mute the page when needed; no gradients */
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.04;
+  background-color: var(--surface);
 }
 
 a {
@@ -46,9 +72,51 @@ a {
   text-decoration: none;
 }
 
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
 button:focus-visible,
 input:focus-visible,
-select:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+input,
+select,
+textarea {
+  border-radius: 999px;
+  border: 3px solid var(--card-border);
+  background: var(--paper);
+  color: var(--text);
+  box-shadow: 4px 4px 0 var(--card-border);
+}
+
+textarea {
+  border-radius: 1rem;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: color-mix(in srgb, var(--muted) 80%, transparent);
+}
+
+.neo-panel {
+  box-shadow: 6px 6px 0 var(--outline);
+}
+
+.neo-pill {
+  border: 3px solid var(--outline);
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: 4px 4px 0 var(--outline);
+}
+
+.neo-floating {
+  box-shadow: 7px 7px 0 var(--outline);
 }

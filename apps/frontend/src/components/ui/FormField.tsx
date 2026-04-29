@@ -7,14 +7,11 @@ type FormFieldProps = InputHTMLAttributes<HTMLInputElement> & {
 
 export function FormField({ label, name, ...props }: FormFieldProps) {
   return (
-    <label className="block text-sm font-medium" htmlFor={name}>
-      {label}
-      <input
-        id={name}
-        name={name}
-        className="mt-1 w-full rounded-md border border-[var(--card-border)] px-3 py-2"
-        {...props}
-      />
+    <label className="block text-sm font-semibold text-text" htmlFor={name}>
+      <span className="mb-1 inline-flex rounded-full border-[3px] border-[var(--card-border)] bg-[var(--surface-alt)] px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.14em] shadow-[4px_4px_0_var(--card-border)]">
+        {label}
+      </span>
+      <input id={name} name={name} className="mt-2 w-full px-4 py-3" {...props} />
     </label>
   );
 }

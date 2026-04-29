@@ -142,7 +142,7 @@ export default function CheckoutPage() {
   if (items.length === 0) {
     return (
       <main className="mt-6 space-y-4">
-        <PageHeader title="Checkout" subtitle="Cart and local checkout state" />
+        <PageHeader title="Checkout" subtitle="Your cart is empty, but the checkout shell still stays loud" />
         <EmptyState
           title="Cart is empty"
           description="Add items from marketplace to continue to checkout."
@@ -155,14 +155,14 @@ export default function CheckoutPage() {
   }
 
   return (
-    <main className="mt-6 grid gap-4 lg:grid-cols-[2fr,1fr]">
+    <main className="mt-6 grid gap-4 lg:grid-cols-[1.15fr,0.85fr]">
       <section className="space-y-4">
-        <PageHeader title="Checkout" subtitle="Single-screen local checkout state" />
+        <PageHeader title="Checkout" subtitle="Single-screen local checkout state with a bold cost breakdown" />
 
-        <AppCard>
+        <AppCard className="bg-[var(--card)]">
           <SectionHeader title="Delivery Zone" />
           <select
-            className="mt-3 w-full rounded-md border border-[var(--card-border)] px-3 py-2"
+            className="mt-3 w-full px-4 py-3"
             value={zoneId}
             onChange={(event) => setZoneId(Number(event.target.value))}
           >
@@ -174,18 +174,18 @@ export default function CheckoutPage() {
           </select>
         </AppCard>
 
-        <AppCard>
+        <AppCard className="bg-[var(--card)]">
           <SectionHeader title="Cart Items" />
           <div className="mt-3 space-y-3">
             {items.map((item) => (
               <div
                 key={item.product.productId}
-                className="rounded-md border border-[var(--card-border)] p-3"
+                className="rounded-[1rem] border-[3px] border-[var(--card-border)] bg-[var(--surface-alt)] p-3 shadow-[4px_4px_0_var(--card-border)]"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="font-semibold">{item.product.name}</p>
-                    <p className="text-xs text-muted">{item.product.vendorShopName}</p>
+                    <p className="font-black uppercase tracking-[0.06em]">{item.product.name}</p>
+                    <p className="text-xs font-bold text-muted">{item.product.vendorShopName}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <AppButton
@@ -194,7 +194,7 @@ export default function CheckoutPage() {
                     >
                       -
                     </AppButton>
-                    <span className="min-w-6 text-center text-sm font-semibold">{item.quantity}</span>
+                    <span className="min-w-6 text-center text-sm font-black">{item.quantity}</span>
                     <AppButton
                       variant="outline"
                       onClick={() => updateQuantity(item.product.productId, item.quantity + 1)}
@@ -214,11 +214,11 @@ export default function CheckoutPage() {
       </section>
 
       <aside className="space-y-4">
-        <AppCard>
+        <AppCard className="bg-[var(--card)]">
           <SectionHeader title="Price Breakdown (Server)" />
           <FormError message={apiError} />
           {orderMessage ? (
-            <p className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{orderMessage}</p>
+            <p className="neo-panel rounded-[1rem] border-[3px] border-[var(--card-border)] bg-[#d9ffb7] px-4 py-3 text-sm font-semibold text-text">{orderMessage}</p>
           ) : null}
           {syncLoading ? <LoadingState label="Syncing wallet and checkout precheck..." /> : null}
           <div className="mt-3 space-y-2">

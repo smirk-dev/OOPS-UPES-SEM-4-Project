@@ -8,6 +8,8 @@ import com.upes.campusdelivery.vendor.dto.VendorOrderListResponse;
 import com.upes.campusdelivery.vendor.dto.VendorProductListResponse;
 import com.upes.campusdelivery.vendor.dto.VendorProductResponse;
 import com.upes.campusdelivery.vendor.dto.VendorProductUpsertRequest;
+import com.upes.campusdelivery.vendor.dto.VendorOrderStatusUpdateRequest;
+import com.upes.campusdelivery.vendor.dto.VendorOrderStatusUpdateResponse;
 import com.upes.campusdelivery.vendor.dto.VendorStockUpdateRequest;
 import com.upes.campusdelivery.vendor.service.VendorService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -107,6 +109,17 @@ public class VendorController {
         HttpServletRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.ok(vendorService.listOrders(username, page, size), traceId(request)));
+    }
+
+    @PatchMapping("/orders/{orderId}/status")
+    public ResponseEntity<ApiResponse<VendorOrderStatusUpdateResponse>> updateOrderStatus(
+        @AuthenticationPrincipal String username,
+        @PathVariable Long orderId,
+        @Valid @RequestBody VendorOrderStatusUpdateRequest body,
+        HttpServletRequest request
+    ) {
+        String traceId = traceId(request);
+        return ResponseEntity.ok(ApiResponse.ok(vendorService.updateOrderStatus(username, orderId, body, traceId), traceId));
     }
 
     @GetMapping("/orders/{orderId}")

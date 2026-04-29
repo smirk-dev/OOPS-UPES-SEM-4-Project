@@ -86,15 +86,17 @@ export default function StudentPage() {
     <main className="mt-6 space-y-4">
       <PageHeader
         title="Marketplace"
-        subtitle="Live catalog from backend APIs with real filters and pricing fields"
+        subtitle="A loud product wall with real filters, bold pricing, and quick add actions"
       />
 
-      <AppCard>
+      <AppCard className="bg-[var(--card)]">
         <SectionHeader
           title="Filters"
           action={
             <div className="flex items-center gap-2">
-              <span className="text-sm text-muted">Quick Adds: {totalQuickAdds}</span>
+              <span className="rounded-full border-[3px] border-[var(--card-border)] bg-[var(--surface-alt-2)] px-3 py-1 text-xs font-extrabold uppercase tracking-[0.12em] shadow-[4px_4px_0_var(--card-border)]">
+                Quick Adds: {totalQuickAdds}
+              </span>
               <Link href="/student/checkout">
                 <AppButton variant="outline">Checkout</AppButton>
               </Link>
@@ -103,10 +105,12 @@ export default function StudentPage() {
         />
 
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
-          <label className="text-sm">
-            Vertical
+          <label className="block text-sm font-semibold text-text">
+            <span className="mb-1 inline-flex rounded-full border-[3px] border-[var(--card-border)] bg-[var(--surface-alt)] px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.14em] shadow-[4px_4px_0_var(--card-border)]">
+              Vertical
+            </span>
             <select
-              className="mt-1 w-full rounded-md border border-[var(--card-border)] px-3 py-2"
+              className="mt-2 w-full px-4 py-3"
               value={vertical}
               onChange={(event) => setVertical(event.target.value)}
             >
@@ -118,10 +122,12 @@ export default function StudentPage() {
             </select>
           </label>
 
-          <label className="text-sm">
-            Category
+          <label className="block text-sm font-semibold text-text">
+            <span className="mb-1 inline-flex rounded-full border-[3px] border-[var(--card-border)] bg-[var(--surface-alt-2)] px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.14em] shadow-[4px_4px_0_var(--card-border)]">
+              Category
+            </span>
             <select
-              className="mt-1 w-full rounded-md border border-[var(--card-border)] px-3 py-2"
+              className="mt-2 w-full px-4 py-3"
               value={category}
               onChange={(event) => setCategory(event.target.value)}
             >
@@ -133,10 +139,12 @@ export default function StudentPage() {
             </select>
           </label>
 
-          <label className="text-sm">
-            Availability
+          <label className="block text-sm font-semibold text-text">
+            <span className="mb-1 inline-flex rounded-full border-[3px] border-[var(--card-border)] bg-[var(--surface-alt)] px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.14em] shadow-[4px_4px_0_var(--card-border)]">
+              Availability
+            </span>
             <select
-              className="mt-1 w-full rounded-md border border-[var(--card-border)] px-3 py-2"
+              className="mt-2 w-full px-4 py-3"
               value={stockStatus}
               onChange={(event) => setStockStatus(event.target.value)}
             >
@@ -164,13 +172,13 @@ export default function StudentPage() {
             const unavailable = product.stockStatus === "UNAVAILABLE";
 
             return (
-              <AppCard key={product.id}>
+              <AppCard key={product.id} className="bg-[var(--card)]">
                 <div className="flex items-start justify-between gap-2">
-                  <h2 className="text-base font-semibold">{product.name}</h2>
+                  <h2 className="text-base font-black uppercase tracking-[0.06em]">{product.name}</h2>
                   <StatusBadge text={product.stockStatus} tone={stockTone(product.stockStatus)} />
                 </div>
 
-                <p className="mt-1 text-xs uppercase tracking-wide text-muted">{product.vendorShopName}</p>
+                <p className="mt-1 text-xs font-bold uppercase tracking-wide text-muted">{product.vendorShopName}</p>
                 <p className="mt-1 text-xs text-muted">{product.vertical} • {product.category}</p>
 
                 <div className="mt-3 space-y-1">

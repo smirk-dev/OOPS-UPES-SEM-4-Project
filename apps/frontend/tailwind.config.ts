@@ -10,6 +10,8 @@ const config: Config = {
     extend: {
       colors: {
         surface: "var(--surface)",
+        surfaceAlt: "var(--surface-alt)",
+        surfaceAlt2: "var(--surface-alt-2)",
         text: "var(--text)",
         muted: "var(--muted)",
         primary: "var(--primary)",
@@ -18,10 +20,10 @@ const config: Config = {
         warn: "var(--warn)",
       },
       boxShadow: {
-        card: "0 10px 30px rgba(0, 30, 80, 0.12)",
+        brutal: "6px 6px 0 rgba(17, 17, 17, 1)",
       },
       borderRadius: {
-        xl: "1rem",
+        xl: "1.25rem",
       },
     },
   },

@@ -277,39 +277,39 @@ export default function VendorPage() {
     <main className="mt-6 space-y-5">
       <PageHeader
         title="Vendor Workspace"
-        subtitle={`Signed in as ${role || Role.VENDOR}. Manage products, flash discounts, and order flow from one place.`}
+        subtitle={`Signed in as ${role || Role.VENDOR}. Manage products, flash discounts, and order flow from one loud control room.`}
       />
 
       {error ? <FormError message={error} /> : null}
       {actionMessage ? (
-        <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+        <div className="neo-panel rounded-[1rem] border-[3px] border-[var(--card-border)] bg-[#d9ffb7] px-4 py-3 text-sm font-semibold text-text">
           {actionMessage}
         </div>
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-3">
-        <AppCard>
-          <div className="text-sm text-muted">Active products</div>
-          <div className="mt-2 text-3xl font-bold">{dashboard.activeItems}</div>
-          <div className="mt-1 text-xs text-muted">Currently saleable items</div>
+        <AppCard className="bg-[var(--surface-alt)]">
+          <div className="text-sm font-bold uppercase tracking-[0.1em] text-muted">Active products</div>
+          <div className="mt-2 text-3xl font-black">{dashboard.activeItems}</div>
+          <div className="mt-1 text-xs font-medium text-muted">Currently saleable items</div>
         </AppCard>
-        <AppCard>
-          <div className="text-sm text-muted">Low stock</div>
-          <div className="mt-2 text-3xl font-bold">{dashboard.lowStockItems}</div>
-          <div className="mt-1 text-xs text-muted">Needs restocking attention</div>
+        <AppCard className="bg-[var(--surface-alt-2)]">
+          <div className="text-sm font-bold uppercase tracking-[0.1em] text-muted">Low stock</div>
+          <div className="mt-2 text-3xl font-black">{dashboard.lowStockItems}</div>
+          <div className="mt-1 text-xs font-medium text-muted">Needs restocking attention</div>
         </AppCard>
-        <AppCard>
-          <div className="text-sm text-muted">Recent sales</div>
-          <div className="mt-2 text-3xl font-bold">{formatMoney(dashboard.recentSalesTotal)}</div>
-          <div className="mt-1 text-xs text-muted">Open orders: {dashboard.openOrders}</div>
+        <AppCard className="bg-[#d7f4c1]">
+          <div className="text-sm font-bold uppercase tracking-[0.1em] text-muted">Recent sales</div>
+          <div className="mt-2 text-3xl font-black">{formatMoney(dashboard.recentSalesTotal)}</div>
+          <div className="mt-1 text-xs font-medium text-muted">Open orders: {dashboard.openOrders}</div>
         </AppCard>
       </div>
 
-      <AppCard>
+      <AppCard className="bg-[var(--card)]">
         <SectionHeader
           title="Product Management"
           action={
-            <button type="button" className="text-sm font-semibold text-primary" onClick={() => handleProductFilter(productFilter)}>
+            <button type="button" className="neo-pill px-3 py-1 text-xs font-extrabold uppercase tracking-[0.1em] text-primary" onClick={() => handleProductFilter(productFilter)}>
               Refresh products
             </button>
           }
@@ -382,16 +382,16 @@ export default function VendorPage() {
             </div>
           </form>
 
-          <div className="space-y-3 rounded-xl border border-[var(--card-border)] bg-slate-50 p-4">
+          <div className="space-y-3 rounded-[1.25rem] border-[3px] border-[var(--card-border)] bg-[var(--surface-alt)] p-4 shadow-[6px_6px_0_var(--card-border)]">
             <div className="flex items-center justify-between gap-3">
-              <h3 className="text-base font-semibold">Products</h3>
+              <h3 className="text-base font-black uppercase tracking-[0.08em]">Products</h3>
               <div className="flex gap-2 text-xs">
                 {["", StockStatus.IN_STOCK, StockStatus.LOW_STOCK, StockStatus.UNAVAILABLE].map((item) => (
                   <button
                     key={item || "all"}
                     type="button"
                     onClick={() => void handleProductFilter(item)}
-                    className={`rounded-full px-3 py-1 font-semibold ${productFilter === item ? "bg-primary text-white" : "bg-white text-text"}`}
+                    className={`rounded-full border-[3px] px-3 py-1 font-extrabold uppercase tracking-[0.08em] shadow-[4px_4px_0_var(--card-border)] ${productFilter === item ? "border-[var(--card-border)] bg-primary text-white" : "border-[var(--card-border)] bg-[var(--card)] text-text"}`}
                   >
                     {item ? item.replace(/_/g, " ") : "All"}
                   </button>
@@ -403,11 +403,11 @@ export default function VendorPage() {
             ) : (
               <div className="space-y-3">
                 {products.map((product) => (
-                  <div key={product.id} className="rounded-lg border border-[var(--card-border)] bg-white p-3">
+                  <div key={product.id} className="rounded-[1rem] border-[3px] border-[var(--card-border)] bg-[var(--card)] p-3 shadow-[4px_4px_0_var(--card-border)]">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <h4 className="font-semibold">{product.name}</h4>
+                          <h4 className="font-black uppercase tracking-[0.06em]">{product.name}</h4>
                           <StatusBadge text={stockLabel(product.stockStatus)} tone={stockTone(product.stockStatus)} />
                           {product.active ? <StatusBadge text="Active" tone="success" /> : <StatusBadge text="Inactive" tone="neutral" />}
                         </div>
@@ -434,7 +434,7 @@ export default function VendorPage() {
                 ))}
               </div>
             )}
-            <div className="flex items-center justify-between text-sm text-muted">
+            <div className="flex items-center justify-between text-sm font-medium text-muted">
               <button
                 type="button"
                 disabled={productPage === 0}
@@ -459,7 +459,7 @@ export default function VendorPage() {
       </AppCard>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_0.95fr]">
-        <AppCard>
+        <AppCard className="bg-[var(--card)]">
           <SectionHeader title="Order Queue" />
           <div className="mt-4 space-y-3">
             {orders.length === 0 ? (
@@ -470,8 +470,8 @@ export default function VendorPage() {
                   key={order.orderId}
                   type="button"
                   onClick={() => void handleOrderSelect(order.orderId)}
-                  className={`w-full rounded-lg border p-3 text-left transition ${
-                    selectedOrder?.orderId === order.orderId ? "border-primary bg-primary/5" : "border-[var(--card-border)] bg-white"
+                  className={`w-full rounded-[1rem] border-[3px] p-3 text-left transition shadow-[4px_4px_0_var(--card-border)] ${
+                    selectedOrder?.orderId === order.orderId ? "border-[var(--card-border)] bg-[var(--surface-alt)]" : "border-[var(--card-border)] bg-[var(--card)]"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
@@ -490,21 +490,21 @@ export default function VendorPage() {
           </div>
         </AppCard>
 
-        <AppCard>
+        <AppCard className="bg-[var(--card)]">
           <SectionHeader title="Selected Order" />
           <div className="mt-4">
             {selectedOrder ? (
               <div className="space-y-3">
-                <div className="rounded-lg border border-[var(--card-border)] bg-slate-50 p-3">
-                  <div className="font-semibold">Order #{selectedOrder.orderId}</div>
-                  <div className="text-sm text-muted">{selectedOrder.zoneName} • {formatTime(selectedOrder.createdAt)}</div>
+                <div className="rounded-[1rem] border-[3px] border-[var(--card-border)] bg-[var(--surface-alt)] p-3 shadow-[4px_4px_0_var(--card-border)]">
+                  <div className="font-black uppercase tracking-[0.06em]">Order #{selectedOrder.orderId}</div>
+                  <div className="text-sm font-medium text-muted">{selectedOrder.zoneName} • {formatTime(selectedOrder.createdAt)}</div>
                   <div className="mt-2 text-sm">Vendor total: {formatMoney(selectedOrder.vendorLineTotal)}</div>
                 </div>
                 <div className="space-y-2">
                   {selectedOrder.items.map((item) => (
-                    <div key={item.productId} className="rounded-lg border border-[var(--card-border)] bg-white p-3 text-sm">
+                    <div key={item.productId} className="rounded-[1rem] border-[3px] border-[var(--card-border)] bg-[var(--card)] p-3 text-sm shadow-[4px_4px_0_var(--card-border)]">
                       <div className="flex items-center justify-between gap-3">
-                        <div className="font-medium">{item.productName}</div>
+                        <div className="font-bold uppercase tracking-[0.06em]">{item.productName}</div>
                         <div>{formatMoney(item.lineTotal)}</div>
                       </div>
                       <div className="mt-1 text-xs text-muted">

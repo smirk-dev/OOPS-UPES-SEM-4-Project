@@ -45,18 +45,21 @@ export function AppHeader() {
   ];
 
   return (
-    <header className="flex items-center justify-between rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-4 py-3 shadow-card">
-      <Link href="/" className="text-sm font-bold tracking-wide text-primary md:text-base">
+    <header className="neo-panel flex flex-wrap items-center justify-between gap-3 rounded-[1.25rem] border-[3px] border-[var(--card-border)] bg-[var(--card)] px-4 py-3">
+      <Link href="/" className="inline-flex items-center gap-2 text-sm font-black uppercase tracking-[0.12em] text-primary md:text-base">
+        <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border-[3px] border-[var(--card-border)] bg-[var(--surface-alt-2)] shadow-[4px_4px_0_var(--card-border)]">
+          CD
+        </span>
         UPES Campus Delivery
       </Link>
       <div className="flex flex-wrap items-center gap-2">
         {isLoggedIn && pathname !== "/login" ? (
           <>
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-muted">
+            <span className="neo-pill px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-text">
               {role || "SIGNED-IN"}
             </span>
             {navigation.filter((item) => item.show).map((item) => (
-              <Link key={item.href} href={item.href} className="text-sm font-semibold text-primary">
+              <Link key={item.href} href={item.href} className="neo-pill px-3 py-1 text-xs font-extrabold uppercase tracking-[0.1em] text-primary transition hover:-translate-x-0.5 hover:-translate-y-0.5">
                 {item.label}
               </Link>
             ))}
@@ -65,9 +68,14 @@ export function AppHeader() {
             </AppButton>
           </>
         ) : (
-          <Link href="/login" className="text-sm font-semibold text-primary">
-            Login
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link href="/signup" className="neo-pill px-3 py-1 text-xs font-extrabold uppercase tracking-[0.1em] text-primary transition hover:-translate-x-0.5 hover:-translate-y-0.5">
+              Signup
+            </Link>
+            <Link href="/login" className="neo-pill px-3 py-1 text-xs font-extrabold uppercase tracking-[0.1em] text-primary transition hover:-translate-x-0.5 hover:-translate-y-0.5">
+              Login
+            </Link>
+          </div>
         )}
       </div>
     </header>

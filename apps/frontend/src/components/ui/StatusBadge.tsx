@@ -9,10 +9,10 @@ export function StatusBadge({ text, tone = "neutral" }: StatusBadgeProps) {
   return (
     <span
       className={clsx(
-        "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold",
-        tone === "success" && "bg-emerald-100 text-emerald-700",
-        tone === "warn" && "bg-amber-100 text-amber-700",
-        tone === "neutral" && "bg-slate-100 text-slate-700"
+        "inline-flex rounded-full border-[3px] border-[var(--card-border)] px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.12em] shadow-[4px_4px_0_var(--card-border)]",
+        tone === "success" && "bg-[#b7f3c7] text-[#111111]",
+        tone === "warn" && "bg-[#ffe08a] text-[#111111]",
+        tone === "neutral" && "bg-[var(--surface-alt)] text-[#111111]"
       )}
     >
       {text}

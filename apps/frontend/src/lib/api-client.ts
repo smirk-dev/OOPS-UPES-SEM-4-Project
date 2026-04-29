@@ -515,6 +515,32 @@ export async function getVendorOrders(
   return unwrapResponse(payload);
 }
 
+export type VendorOrderStatusUpdateResponse = {
+  orderId: number;
+  previousStatus: string;
+  newStatus: string;
+  updatedAt: string;
+};
+
+export async function updateVendorOrderStatus(
+  token: string,
+  orderId: number,
+  status: string
+): Promise<VendorOrderStatusUpdateResponse> {
+  const response = await fetch(`${API_BASE_URL}/vendor/orders/${orderId}/status`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      "X-Request-Id": crypto.randomUUID(),
+    },
+    body: JSON.stringify({ status }),
+  });
+  const payload = (await response.json()) as ApiEnvelope<VendorOrderStatusUpdateResponse>;
+  if (!response.ok) throw new Error(payload.error?.message ?? "Unable to update order status");
+  return unwrapResponse(payload);
+}
+
 export async function getVendorOrderDetail(token: string, orderId: number): Promise<VendorOrderDetail> {
   const response = await fetch(`${API_BASE_URL}/vendor/orders/${orderId}`, {
     headers: {
