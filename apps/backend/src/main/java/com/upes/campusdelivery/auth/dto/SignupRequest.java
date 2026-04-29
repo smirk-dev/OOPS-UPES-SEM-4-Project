@@ -5,6 +5,7 @@ import com.upes.campusdelivery.common.enums.Vertical;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record SignupRequest(
@@ -20,7 +21,7 @@ public record SignupRequest(
     @Size(max = 150, message = "Email is too long")
     String email,
 
-    @Size(max = 20, message = "Phone number is too long")
+    @Pattern(regexp = "^\\d{10}$", message = "Phone number must be exactly 10 digits")
     String phone,
 
     @NotBlank(message = "Password is required")

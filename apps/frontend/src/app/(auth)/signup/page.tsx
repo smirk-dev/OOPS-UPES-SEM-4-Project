@@ -49,6 +49,11 @@ export default function SignupPage() {
       return;
     }
 
+    if (phone && phone.length !== 10) {
+      setError("Phone number must be exactly 10 digits.");
+      return;
+    }
+
     if (role === Role.VENDOR && (!shopName.trim() || !vertical)) {
       setError("Vendor signup requires a shop name and vertical.");
       return;
@@ -113,7 +118,14 @@ export default function SignupPage() {
               <FormField label="Full Name" name="fullName" value={fullName} onChange={(event) => setFullName(event.target.value)} />
               <FormField label="Username" name="username" value={username} onChange={(event) => setUsername(event.target.value)} />
               <FormField label="Email" name="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
-              <FormField label="Phone" name="phone" value={phone} onChange={(event) => setPhone(event.target.value)} />
+              <FormField
+                label="Phone"
+                name="phone"
+                type="tel"
+                value={phone}
+                maxLength={10}
+                onChange={(event) => setPhone(event.target.value.replace(/\D/g, "").slice(0, 10))}
+              />
               <FormField label="Password" name="password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
 
               {role === Role.VENDOR ? (
