@@ -174,7 +174,9 @@ export default function StudentPage() {
             return (
               <AppCard key={product.id} className="bg-[var(--card)]">
                 <div className="flex items-start justify-between gap-2">
-                  <h2 className="text-base font-black uppercase tracking-[0.06em]">{product.name}</h2>
+                  <Link href={`/student/catalog/${product.id}`} className="hover:underline">
+                    <h2 className="text-base font-black uppercase tracking-[0.06em]">{product.name}</h2>
+                  </Link>
                   <StatusBadge text={product.stockStatus} tone={stockTone(product.stockStatus)} />
                 </div>
 

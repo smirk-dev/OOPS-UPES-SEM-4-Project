@@ -40,6 +40,7 @@ export function AppHeader() {
   const navigation = [
     { href: "/dashboard", label: "Dashboard", show: true },
     { href: "/student", label: "Student", show: role === Role.STUDENT || role === "" },
+    { href: "/student/wallet", label: "Wallet", show: role === Role.STUDENT },
     { href: "/vendor", label: "Vendor", show: role === Role.VENDOR || role === Role.ADMIN },
     { href: "/admin", label: "Admin", show: role === Role.ADMIN },
   ];

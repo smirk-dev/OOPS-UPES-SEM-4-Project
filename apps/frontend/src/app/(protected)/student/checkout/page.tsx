@@ -56,6 +56,11 @@ export default function CheckoutPage() {
     setItems([...nextItems]);
   };
 
+  const removeItem = (productId: number) => {
+    const nextItems = cartStorage.removeItem(productId);
+    setItems([...nextItems]);
+  };
+
   useEffect(() => {
     idempotencyKeyRef.current = "";
     setOrderMessage("");
@@ -200,6 +205,12 @@ export default function CheckoutPage() {
                       onClick={() => updateQuantity(item.product.productId, item.quantity + 1)}
                     >
                       +
+                    </AppButton>
+                    <AppButton
+                      variant="outline"
+                      onClick={() => removeItem(item.product.productId)}
+                    >
+                      ✕
                     </AppButton>
                   </div>
                 </div>
