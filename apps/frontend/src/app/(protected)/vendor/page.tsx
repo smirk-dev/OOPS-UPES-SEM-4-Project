@@ -391,7 +391,7 @@ export default function VendorPage() {
                     key={item || "all"}
                     type="button"
                     onClick={() => void handleProductFilter(item)}
-                    className={`rounded-full border-[3px] px-3 py-1 font-extrabold uppercase tracking-[0.08em] shadow-[4px_4px_0_var(--card-border)] ${productFilter === item ? "border-[var(--card-border)] bg-primary text-white" : "border-[var(--card-border)] bg-[var(--card)] text-text"}`}
+                    className={`rounded-full border-[3px] px-3 py-1 font-extrabold uppercase tracking-[0.08em] shadow-[4px_4px_0_var(--card-border)] ${productFilter === item ? "border-[var(--card-border)] bg-primary text-[var(--button-text)]" : "border-[var(--card-border)] bg-[var(--card)] text-text"}`}
                   >
                     {item ? item.replace(/_/g, " ") : "All"}
                   </button>

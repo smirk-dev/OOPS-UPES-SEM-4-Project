@@ -105,7 +105,7 @@ export default function SignupPage() {
                   onClick={() => setRole(item)}
                   className={`rounded-full border-[3px] px-3 py-2 text-xs font-extrabold uppercase tracking-[0.1em] transition ${
                     role === item
-                      ? "border-[var(--card-border)] bg-primary text-white"
+                      ? "border-[var(--card-border)] bg-primary text-[var(--button-text)]"
                       : "border-[var(--card-border)] bg-[var(--surface-alt)] text-[var(--text)]"
                   }`}
                 >

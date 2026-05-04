@@ -9,6 +9,7 @@
   --text: #111111;
   --muted: #403b39;
   --primary: #111111;
+  --button-text: #ffffff;
   --accent: #ff7f50;
   --success: #1f9d55;
   --warn: #f59e0b;
@@ -25,6 +26,7 @@
   --text: #f8f3e9;
   --muted: #d6cbd8;
   --primary: #f8f3e9;
+  --button-text: #111111;
   --accent: #f9db5c;
   --success: #75e08f;
   --warn: #ffbc63;
@@ -106,17 +108,19 @@ textarea::placeholder {
   color: color-mix(in srgb, var(--muted) 80%, transparent);
 }
 
-.neo-panel {
-  box-shadow: 6px 6px 0 var(--outline);
-}
+@layer components {
+  .neo-panel {
+    box-shadow: 6px 6px 0 var(--outline);
+  }
 
-.neo-pill {
-  border: 3px solid var(--outline);
-  border-radius: 999px;
-  background: var(--card);
-  box-shadow: 4px 4px 0 var(--outline);
-}
+  .neo-pill {
+    border: 3px solid var(--outline);
+    border-radius: 999px;
+    background: var(--card);
+    box-shadow: 4px 4px 0 var(--outline);
+  }
 
-.neo-floating {
-  box-shadow: 7px 7px 0 var(--outline);
+  .neo-floating {
+    box-shadow: 7px 7px 0 var(--outline);
+  }
 }
