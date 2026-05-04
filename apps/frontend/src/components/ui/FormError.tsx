@@ -8,7 +8,7 @@ export function FormError({ message }: FormErrorProps) {
   }
 
   return (
-    <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+    <p role="alert" className="neo-panel rounded-[1rem] border-[3px] border-[#111111] bg-[#ffcfcb] px-4 py-3 text-sm font-semibold text-[#111111]">
       {message}
     </p>
   );

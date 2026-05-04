@@ -12,6 +12,8 @@ import com.upes.campusdelivery.vendor.dto.VendorProductListResponse;
 import com.upes.campusdelivery.vendor.dto.VendorProductResponse;
 import com.upes.campusdelivery.vendor.dto.VendorProductUpsertRequest;
 import com.upes.campusdelivery.vendor.dto.VendorProductView;
+import com.upes.campusdelivery.vendor.dto.VendorOrderStatusUpdateRequest;
+import com.upes.campusdelivery.vendor.dto.VendorOrderStatusUpdateResponse;
 import com.upes.campusdelivery.vendor.dto.VendorStockUpdateRequest;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -300,6 +302,69 @@ public class VendorService {
         }
 
         return details.get(0);
+    }
+
+    @Transactional
+    public VendorOrderStatusUpdateResponse updateOrderStatus(
+        String username,
+        Long orderId,
+        VendorOrderStatusUpdateRequest request,
+        String traceId
+    ) {
+        VendorContext context = getVendorContextOrThrow(username);
+        ensureOrderVisibleToVendor(context.vendorId(), orderId);
+
+        String newStatus = request.status().strip().toUpperCase();
+        validateOrderStatus(newStatus);
+
+        List<String> currentRows = jdbcTemplate.queryForList(
+            "SELECT status FROM orders WHERE id = ?",
+            String.class,
+            orderId
+        );
+        if (currentRows.isEmpty()) {
+            throw new AppException("ORDER_NOT_FOUND", "Order not found.", HttpStatus.NOT_FOUND);
+        }
+        String currentStatus = currentRows.get(0);
+        validateStatusTransition(currentStatus, newStatus);
+
+        jdbcTemplate.update(
+            "UPDATE orders SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            newStatus,
+            orderId
+        );
+
+        auditService.record(
+            username, "VENDOR", "UPDATE_ORDER_STATUS", "ORDER", orderId, traceId,
+            Map.of("from", currentStatus, "to", newStatus)
+        );
+        log.info("vendor-order-status-updated vendorId={} orderId={} from={} to={} traceId={}",
+            context.vendorId(), orderId, currentStatus, newStatus, traceId);
+
+        return new VendorOrderStatusUpdateResponse(orderId, currentStatus, newStatus, Instant.now());
+    }
+
+    private void validateOrderStatus(String status) {
+        if (!java.util.Set.of("PLACED", "CONFIRMED", "PREPARING", "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED").contains(status)) {
+            throw new AppException("INVALID_ORDER_STATUS", "Invalid order status: " + status, HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    private void validateStatusTransition(String from, String to) {
+        boolean allowed = switch (from) {
+            case "PLACED"            -> java.util.Set.of("CONFIRMED", "CANCELLED").contains(to);
+            case "CONFIRMED"         -> java.util.Set.of("PREPARING", "CANCELLED").contains(to);
+            case "PREPARING"         -> "OUT_FOR_DELIVERY".equals(to);
+            case "OUT_FOR_DELIVERY"  -> "DELIVERED".equals(to);
+            default                  -> false;
+        };
+        if (!allowed) {
+            throw new AppException(
+                "INVALID_STATUS_TRANSITION",
+                "Cannot transition order from " + from + " to " + to + ".",
+                HttpStatus.BAD_REQUEST
+            );
+        }
     }
 
     @Transactional

@@ -3,6 +3,12 @@ type MoneyDisplayProps = {
   className?: string;
 };
 
+const moneyFormatter = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  maximumFractionDigits: 0,
+});
+
 export function MoneyDisplay({ amount, className }: MoneyDisplayProps) {
-  return <span className={className}>INR {amount.toFixed(2)}</span>;
+  return <span className={className}>{moneyFormatter.format(amount)}</span>;
 }

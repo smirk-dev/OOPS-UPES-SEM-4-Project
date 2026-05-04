@@ -12,7 +12,12 @@ export type ApiEnvelope<T> = {
 
 export function unwrapResponse<T>(payload: ApiEnvelope<T>): T {
   if (!payload.success) {
-    throw new Error(payload.error?.message ?? "Request failed");
+    const message = payload.error?.message ?? "Request failed";
+    const details = payload.error?.details;
+    if (details && details.length > 0) {
+      throw new Error(`${message} (${details.join("; ")})`);
+    }
+    throw new Error(message);
   }
   if (payload.data == null) {
     throw new Error("Request succeeded but response data was empty");

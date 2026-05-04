@@ -1,5 +1,5 @@
 import { unwrapResponse, type ApiEnvelope } from "@/lib/api-mapper";
-import { Role } from "@/lib/enums";
+import { Role, Vertical } from "@/lib/enums";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api/v1";
 
@@ -15,6 +15,17 @@ type LoginResponse = {
   role: Role;
   token: string;
   expiresInSeconds: number;
+};
+
+export type SignupRequest = {
+  fullName: string;
+  username: string;
+  email?: string;
+  phone?: string;
+  password: string;
+  role: Role;
+  shopName?: string;
+  vertical?: Vertical;
 };
 
 export type CatalogProduct = {
@@ -50,6 +61,46 @@ export type WalletBalanceResponse = {
   walletId: number;
   userId: number;
   currentBalance: number;
+};
+
+export type WalletTransaction = {
+  transactionId: number;
+  transactionType: string;
+  paymentSource: string;
+  amount: number;
+  reason?: string | null;
+  orderId?: number | null;
+  createdAt: string;
+};
+
+export type WalletTransactionsResponse = {
+  items: WalletTransaction[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+};
+
+export type WalletRechargeResponse = {
+  walletId: number;
+  transactionId: number;
+  creditedAmount: number;
+  updatedBalance: number;
+};
+
+export type CatalogProductDetail = {
+  id: number;
+  name: string;
+  description?: string | null;
+  category: string;
+  vertical: string;
+  mrp: number;
+  currentPrice: number;
+  savings: number;
+  stockStatus: string;
+  flashDiscountPercent: number;
+  active: boolean;
+  vendorShopName: string;
 };
 
 export type CheckoutPrecheckItemRequest = {
@@ -259,6 +310,24 @@ export async function login(request: LoginRequest): Promise<LoginResponse> {
   const payload = (await response.json()) as ApiEnvelope<LoginResponse>;
   if (!response.ok) {
     throw new Error(payload.error?.message ?? "Login failed");
+  }
+
+  return unwrapResponse(payload);
+}
+
+export async function signup(request: SignupRequest): Promise<LoginResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/signup`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Request-Id": crypto.randomUUID(),
+    },
+    body: JSON.stringify(request),
+  });
+
+  const payload = (await response.json()) as ApiEnvelope<LoginResponse>;
+  if (!response.ok) {
+    throw new Error(payload.error?.message ?? "Signup failed");
   }
 
   return unwrapResponse(payload);
@@ -486,6 +555,32 @@ export async function getVendorOrders(
   return unwrapResponse(payload);
 }
 
+export type VendorOrderStatusUpdateResponse = {
+  orderId: number;
+  previousStatus: string;
+  newStatus: string;
+  updatedAt: string;
+};
+
+export async function updateVendorOrderStatus(
+  token: string,
+  orderId: number,
+  status: string
+): Promise<VendorOrderStatusUpdateResponse> {
+  const response = await fetch(`${API_BASE_URL}/vendor/orders/${orderId}/status`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      "X-Request-Id": crypto.randomUUID(),
+    },
+    body: JSON.stringify({ status }),
+  });
+  const payload = (await response.json()) as ApiEnvelope<VendorOrderStatusUpdateResponse>;
+  if (!response.ok) throw new Error(payload.error?.message ?? "Unable to update order status");
+  return unwrapResponse(payload);
+}
+
 export async function getVendorOrderDetail(token: string, orderId: number): Promise<VendorOrderDetail> {
   const response = await fetch(`${API_BASE_URL}/vendor/orders/${orderId}`, {
     headers: {
@@ -586,5 +681,52 @@ export async function toggleAdminProductActive(
   );
   const payload = (await response.json()) as ApiEnvelope<AdminToggleResponse>;
   if (!response.ok) throw new Error(payload.error?.message ?? "Unable to update product status");
+  return unwrapResponse(payload);
+}
+
+export async function getCatalogProduct(token: string, productId: number): Promise<CatalogProductDetail> {
+  const response = await fetch(`${API_BASE_URL}/catalog/products/${productId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "X-Request-Id": crypto.randomUUID(),
+    },
+  });
+  const payload = (await response.json()) as ApiEnvelope<CatalogProductDetail>;
+  if (!response.ok) throw new Error(payload.error?.message ?? "Unable to load product");
+  return unwrapResponse(payload);
+}
+
+export async function getWalletTransactions(
+  token: string,
+  page = 0,
+  size = 10
+): Promise<WalletTransactionsResponse> {
+  const response = await fetch(`${API_BASE_URL}/wallet/transactions?page=${page}&size=${size}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "X-Request-Id": crypto.randomUUID(),
+    },
+  });
+  const payload = (await response.json()) as ApiEnvelope<WalletTransactionsResponse>;
+  if (!response.ok) throw new Error(payload.error?.message ?? "Unable to load transactions");
+  return unwrapResponse(payload);
+}
+
+export async function rechargeWallet(
+  token: string,
+  amount: number,
+  note?: string
+): Promise<WalletRechargeResponse> {
+  const response = await fetch(`${API_BASE_URL}/wallet/recharge`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      "X-Request-Id": crypto.randomUUID(),
+    },
+    body: JSON.stringify({ amount, note: note ?? null }),
+  });
+  const payload = (await response.json()) as ApiEnvelope<WalletRechargeResponse>;
+  if (!response.ok) throw new Error(payload.error?.message ?? "Recharge failed");
   return unwrapResponse(payload);
 }

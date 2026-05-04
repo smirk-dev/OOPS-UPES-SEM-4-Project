@@ -160,42 +160,44 @@ export default function AdminPage() {
     <main className="mt-6 space-y-5">
       <PageHeader
         title="Admin Workspace"
-        subtitle={`Signed in as ${role || Role.ADMIN}. Govern users, product visibility, and operational audit logs.`}
+        subtitle={`Signed in as ${role || Role.ADMIN}. Govern users, product visibility, and operational audit logs from a louder control surface.`}
       />
 
       {error ? <FormError message={error} /> : null}
       {actionMessage ? (
-        <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+        <div className="neo-panel rounded-[1rem] border-[3px] border-[var(--card-border)] bg-[#d9ffb7] px-4 py-3 text-sm font-semibold text-text">
           {actionMessage}
         </div>
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-3">
-        <AppCard>
-          <div className="text-sm text-muted">Users</div>
-          <div className="mt-2 text-3xl font-bold">{dashboard.totalUsers}</div>
-          <div className="mt-1 text-xs text-muted">Students: {dashboard.activeStudents} • Vendors: {dashboard.activeVendors}</div>
+        <AppCard className="bg-[var(--surface-alt)]">
+          <div className="text-sm font-bold uppercase tracking-[0.1em] text-muted">Users</div>
+          <div className="mt-2 text-3xl font-black">{dashboard.totalUsers}</div>
+          <div className="mt-1 text-xs font-medium text-muted">Students: {dashboard.activeStudents} • Vendors: {dashboard.activeVendors}</div>
         </AppCard>
-        <AppCard>
-          <div className="text-sm text-muted">Orders</div>
-          <div className="mt-2 text-3xl font-bold">{dashboard.totalOrders}</div>
-          <div className="mt-1 text-xs text-muted">Active products: {dashboard.activeProducts}</div>
+        <AppCard className="bg-[var(--surface-alt-2)]">
+          <div className="text-sm font-bold uppercase tracking-[0.1em] text-muted">Orders</div>
+          <div className="mt-2 text-3xl font-black">{dashboard.totalOrders}</div>
+          <div className="mt-1 text-xs font-medium text-muted">Active products: {dashboard.activeProducts}</div>
         </AppCard>
-        <AppCard>
-          <div className="text-sm text-muted">Audit events</div>
-          <div className="mt-2 text-3xl font-bold">{dashboard.auditEvents}</div>
-          <div className="mt-1 text-xs text-muted">Operational traceability feed</div>
+        <AppCard className="bg-[#d7f4c1]">
+          <div className="text-sm font-bold uppercase tracking-[0.1em] text-muted">Audit events</div>
+          <div className="mt-2 text-3xl font-black">{dashboard.auditEvents}</div>
+          <div className="mt-1 text-xs font-medium text-muted">Operational traceability feed</div>
         </AppCard>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-        <AppCard>
+        <AppCard className="bg-[var(--card)]">
           <SectionHeader title="User Moderation" />
           <div className="mt-3 grid gap-3 md:grid-cols-3">
-            <label className="block text-sm font-medium">
-              Role
+            <label className="block text-sm font-semibold text-text">
+              <span className="mb-1 inline-flex rounded-full border-[3px] border-[var(--card-border)] bg-[var(--surface-alt)] px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.14em] shadow-[4px_4px_0_var(--card-border)]">
+                Role
+              </span>
               <select
-                className="mt-1 w-full rounded-md border border-[var(--card-border)] px-3 py-2"
+                className="mt-2 w-full px-4 py-3"
                 value={userRoleFilter}
                 onChange={(event) => {
                   setUserRoleFilter(event.target.value);
@@ -208,10 +210,12 @@ export default function AdminPage() {
                 <option value="ADMIN">ADMIN</option>
               </select>
             </label>
-            <label className="block text-sm font-medium">
-              Active state
+            <label className="block text-sm font-semibold text-text">
+              <span className="mb-1 inline-flex rounded-full border-[3px] border-[var(--card-border)] bg-[var(--surface-alt-2)] px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.14em] shadow-[4px_4px_0_var(--card-border)]">
+                Active state
+              </span>
               <select
-                className="mt-1 w-full rounded-md border border-[var(--card-border)] px-3 py-2"
+                className="mt-2 w-full px-4 py-3"
                 value={activeOnly}
                 onChange={(event) => {
                   setActiveOnly(event.target.value);
@@ -235,11 +239,11 @@ export default function AdminPage() {
               <LoadingState label="No users found for current filters." />
             ) : (
               users.map((user) => (
-                <div key={user.userId} className="rounded-lg border border-[var(--card-border)] bg-[var(--card)] p-3">
+                <div key={user.userId} className="rounded-[1rem] border-[3px] border-[var(--card-border)] bg-[var(--card)] p-3 shadow-[4px_4px_0_var(--card-border)]">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="font-semibold">{user.fullName}</h3>
+                        <h3 className="font-black uppercase tracking-[0.06em]">{user.fullName}</h3>
                         <StatusBadge text={user.role} tone="neutral" />
                         {user.active ? <StatusBadge text="Active" tone="success" /> : <StatusBadge text="Inactive" tone="warn" />}
                       </div>
@@ -272,7 +276,7 @@ export default function AdminPage() {
           </div>
         </AppCard>
 
-        <AppCard>
+        <AppCard className="bg-[var(--card)]">
           <SectionHeader title="Product Moderation" />
           <form
             className="mt-3 space-y-3"
@@ -309,9 +313,9 @@ export default function AdminPage() {
               <LoadingState label="No audit events found yet." />
             ) : (
               audits.map((audit) => (
-                <div key={audit.auditId} className="rounded-lg border border-[var(--card-border)] bg-[var(--surface)] p-3 text-xs">
+                <div key={audit.auditId} className="rounded-[1rem] border-[3px] border-[var(--card-border)] bg-[var(--surface)] p-3 text-xs shadow-[4px_4px_0_var(--card-border)]">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-semibold">{audit.action}</span>
+                    <span className="font-black uppercase tracking-[0.06em]">{audit.action}</span>
                     <span className="text-muted">{formatTime(audit.createdAt)}</span>
                   </div>
                   <p className="mt-1 text-muted">

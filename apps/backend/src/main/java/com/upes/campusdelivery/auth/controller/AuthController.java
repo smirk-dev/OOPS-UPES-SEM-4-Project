@@ -2,6 +2,7 @@ package com.upes.campusdelivery.auth.controller;
 
 import com.upes.campusdelivery.auth.dto.LoginRequest;
 import com.upes.campusdelivery.auth.dto.LoginResponse;
+import com.upes.campusdelivery.auth.dto.SignupRequest;
 import com.upes.campusdelivery.auth.service.AuthService;
 import com.upes.campusdelivery.common.api.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
@@ -28,6 +29,16 @@ public class AuthController {
         HttpServletRequest servletRequest
     ) {
         LoginResponse response = authService.login(request);
+        String traceId = servletRequest.getHeader("X-Request-Id");
+        return ResponseEntity.ok(ApiResponse.ok(response, traceId == null || traceId.isBlank() ? "n/a" : traceId));
+    }
+
+    @PostMapping("/signup")
+    public ResponseEntity<ApiResponse<LoginResponse>> signup(
+        @Valid @RequestBody SignupRequest request,
+        HttpServletRequest servletRequest
+    ) {
+        LoginResponse response = authService.signup(request);
         String traceId = servletRequest.getHeader("X-Request-Id");
         return ResponseEntity.ok(ApiResponse.ok(response, traceId == null || traceId.isBlank() ? "n/a" : traceId));
     }
